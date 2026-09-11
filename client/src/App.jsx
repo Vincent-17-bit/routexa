@@ -46,11 +46,9 @@ export default function App() {
   const [activeRouteId, setActiveRouteId] = useState(MOCK_ROUTES[0].id)
 
   const handleReverse = useCallback(() => {
-    setOrigin((prevOrigin) => {
-      setDestination(() => prevOrigin)
-      return destination
-    })
-  }, [destination])
+    setOrigin(destination)
+    setDestination(origin)
+  }, [origin, destination])
 
   const handleCancel = useCallback(() => {
     setOrigin('')
