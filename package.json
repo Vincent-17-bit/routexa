@@ -1,0 +1,18 @@
+{
+  "name": "trafiq",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": ["client", "server", "admin"],
+  "scripts": {
+    "dev:client": "npm run dev --workspace=client",
+    "dev:server": "npm run dev --workspace=server",
+    "dev:admin": "npm run dev --workspace=admin",
+    "dev": "concurrently -n client,server,admin -c blue,green,magenta \"npm run dev:client\" \"npm run dev:server\" \"npm run dev:admin\"",
+    "build:client": "npm run build --workspace=client",
+    "build:admin": "npm run build --workspace=admin",
+    "build": "npm run build:client && npm run build:admin"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}

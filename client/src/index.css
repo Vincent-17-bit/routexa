@@ -1,0 +1,46 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --sheet-height: 52px;
+  --shield-bg: #538235;
+  --shield-text: #E1BC29;
+  --county-label: #7E8B9B;
+  --road-highway: #8389A3;
+  --road-arterial: #B0B8C8;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  @apply bg-app-light dark:bg-app-dark text-text-primary-light dark:text-text-primary-dark;
+}
+
+.glass {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.county-label {
+  color: var(--county-label);
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+}
+
+.road-shield {
+  background: var(--shield-bg);
+  color: var(--shield-text);
+}
+
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.85); }
+}
+
+.live-dot {
+  animation: live-pulse 1s ease-in-out infinite;
+}
