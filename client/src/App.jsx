@@ -1,10 +1,11 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import Header from './components/Header'
 import MapContainer from './components/MapContainer'
 import SearchPanel from './components/SearchPanel'
 import RouteResults from './components/RouteResults'
 import { useSheetState, SHEET_STATE } from './hooks/useSheetState'
 import { useMediaQuery } from './hooks/useMediaQuery'
+import { checkHealth } from './lib/api'
 
 const MOCK_ROUTES = [
   {
@@ -44,6 +45,12 @@ export default function App() {
   const [destination, setDestination] = useState('')
   const [mode, setMode] = useState('car')
   const [activeRouteId, setActiveRouteId] = useState(MOCK_ROUTES[0].id)
+
+  useEffect(() => {
+    checkHealth()
+      .then(() => console.info('[trafiq] server reachable'))
+      .catch((err) => console.warn('[trafiq] server unreachable:', err.message))
+  }, [])
 
   const handleReverse = useCallback(() => {
     setOrigin(destination)
