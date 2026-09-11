@@ -13,7 +13,7 @@ function App() {
 
   return (
     <div style={{ padding: 24, fontFamily: 'sans-serif' }}>
-      <p>TRAFIQ Admin — scaffold pending</p>
+      <p>ROUTEXA Admin — scaffold pending</p>
       <p>Server: {status}</p>
     </div>
   )

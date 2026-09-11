@@ -48,8 +48,8 @@ export default function App() {
 
   useEffect(() => {
     checkHealth()
-      .then(() => console.info('[trafiq] server reachable'))
-      .catch((err) => console.warn('[trafiq] server unreachable:', err.message))
+      .then(() => console.info('[routexa] server reachable'))
+      .catch((err) => console.warn('[routexa] server unreachable:', err.message))
   }, [])
 
   const handleReverse = useCallback(() => {
