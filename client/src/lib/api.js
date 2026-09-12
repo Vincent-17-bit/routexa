@@ -1,8 +1,9 @@
 export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000'
 export const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN
 
-// Mapbox has no dedicated transit/motorbike profile; both fall back to a driving profile.
 const DIRECTIONS_PROFILE = { car: 'driving-traffic', transit: 'driving', motorbike: 'driving' }
+const SEARCH_TYPES = 'country,region,postcode,district,place,locality,neighborhood,address,poi'
+const REVERSE_TYPES = 'address,poi,neighborhood,locality,place,district'
 
 export async function checkHealth() {
   const res = await fetch(`${API_URL}/api/health`)
@@ -10,18 +11,32 @@ export async function checkHealth() {
   return res.json()
 }
 
-export async function forwardGeocode(query) {
-  const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${MAPBOX_TOKEN}&limit=1&proximity=36.8219,-1.2921`
+export async function searchPlaces(query) {
+  if (!query.trim()) return []
+  const params = new URLSearchParams({
+    access_token: MAPBOX_TOKEN,
+    autocomplete: 'true',
+    fuzzyMatch: 'true',
+    limit: '8',
+    types: SEARCH_TYPES,
+    proximity: '36.8219,-1.2921'
+  })
+  const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?${params}`
   const res = await fetch(url)
-  if (!res.ok) throw new Error(`Geocode failed: ${res.status}`)
+  if (!res.ok) throw new Error(`Search failed: ${res.status}`)
   const data = await res.json()
-  const feature = data.features?.[0]
-  if (!feature) return null
-  return { text: feature.place_name, coords: feature.center }
+  return (data.features || []).map((f) => ({
+    id: f.id,
+    text: f.text,
+    context: (f.context || []).map((c) => c.text).join(', '),
+    center: f.center,
+    bbox: f.bbox || null
+  }))
 }
 
 export async function reverseGeocode(lng, lat) {
-  const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${MAPBOX_TOKEN}&limit=1`
+  const params = new URLSearchParams({ access_token: MAPBOX_TOKEN, limit: '1', types: REVERSE_TYPES })
+  const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?${params}`
   const res = await fetch(url)
   if (!res.ok) throw new Error(`Reverse geocode failed: ${res.status}`)
   const data = await res.json()

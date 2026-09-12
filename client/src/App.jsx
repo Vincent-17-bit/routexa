@@ -8,7 +8,7 @@ import { useSheetState, SHEET_STATE } from './hooks/useSheetState'
 import { useMediaQuery } from './hooks/useMediaQuery'
 import { useDebouncedCallback } from './hooks/useDebounce'
 import { useSystemTheme } from './hooks/useSystemTheme'
-import { checkHealth, forwardGeocode, reverseGeocode, fetchDirections } from './lib/api'
+import { checkHealth, reverseGeocode, fetchDirections } from './lib/api'
 
 const EMPTY_POINT = { text: '', coords: null }
 
@@ -21,6 +21,7 @@ export default function App() {
   const [destination, setDestination] = useState(EMPTY_POINT)
   const [mode, setMode] = useState('car')
   const [focusedField, setFocusedField] = useState(null)
+  const [mapFocus, setMapFocus] = useState(null)
 
   const [routes, setRoutes] = useState([])
   const [activeRouteId, setActiveRouteId] = useState(null)
@@ -57,23 +58,15 @@ export default function App() {
 
   const debouncedRecompute = useDebouncedCallback(computeRoute, 300)
 
-  const geocodeField = useDebouncedCallback(async (field, text) => {
-    if (!text.trim()) return
-    const result = await forwardGeocode(text).catch(() => null)
-    if (!result) return
-    if (field === 'origin') setOrigin((o) => (o.text === text ? { text: o.text, coords: result.coords } : o))
-    else setDestination((d) => (d.text === text ? { text: d.text, coords: result.coords } : d))
-  }, 400)
+  const handleSelectOrigin = useCallback((result) => {
+    setOrigin({ text: result.text, coords: result.center })
+    setMapFocus({ coords: result.center, bbox: result.bbox, ts: Date.now() })
+  }, [])
 
-  const handleOriginChange = useCallback((text) => {
-    setOrigin({ text, coords: null })
-    geocodeField('origin', text)
-  }, [geocodeField])
-
-  const handleDestinationChange = useCallback((text) => {
-    setDestination({ text, coords: null })
-    geocodeField('destination', text)
-  }, [geocodeField])
+  const handleSelectDestination = useCallback((result) => {
+    setDestination({ text: result.text, coords: result.center })
+    setMapFocus({ coords: result.center, bbox: result.bbox, ts: Date.now() })
+  }, [])
 
   const pickTargetField = useMemo(() => {
     if (focusedField === 'destination') return 'destination'
@@ -131,8 +124,8 @@ export default function App() {
       <SearchPanel
         origin={origin}
         destination={destination}
-        onOriginChange={handleOriginChange}
-        onDestinationChange={handleDestinationChange}
+        onSelectOrigin={handleSelectOrigin}
+        onSelectDestination={handleSelectDestination}
         onOriginFocus={() => setFocusedField('origin')}
         onDestinationFocus={() => setFocusedField('destination')}
         onReverse={handleReverse}
@@ -171,6 +164,7 @@ export default function App() {
         activeRouteId={activeRouteId}
         pickTargetField={pickTargetField}
         onMapPick={handleMapPick}
+        mapFocus={mapFocus}
       />
       <TrafficToast message={toastMessage} />
 

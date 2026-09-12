@@ -19,7 +19,7 @@ function pinEl(color) {
   return el.firstElementChild
 }
 
-export default function MapContainer({ origin, destination, routes, activeRouteId, pickTargetField, onMapPick }) {
+export default function MapContainer({ origin, destination, routes, activeRouteId, pickTargetField, onMapPick, mapFocus }) {
   const containerRef = useRef(null)
   const mapRef = useRef(null)
   const loadedRef = useRef(false)
@@ -86,8 +86,26 @@ export default function MapContainer({ origin, destination, routes, activeRouteI
       })
 
       if (map.getLayer('poi-label')) {
+        const knownMakiList = Array.from(KNOWN_MAKI_IDS)
+        map.addLayer({
+          id: 'poi-halo',
+          type: 'circle',
+          source: 'composite',
+          'source-layer': 'poi_label',
+          filter: ['in', ['get', 'maki'], ['literal', knownMakiList]],
+          paint: {
+            'circle-radius': 9,
+            'circle-color': buildMakiMatchExpression(DEFAULT_POI_COLOR),
+            'circle-opacity': 0.16,
+            'circle-stroke-width': 1.5,
+            'circle-stroke-color': buildMakiMatchExpression(DEFAULT_POI_COLOR),
+            'circle-stroke-opacity': 0.55
+          }
+        }, 'poi-label')
+
         map.setPaintProperty('poi-label', 'icon-color', buildMakiMatchExpression(DEFAULT_POI_COLOR))
         map.setLayoutProperty('poi-label', 'icon-size', 1.25)
+        map.setLayoutProperty('poi-label', 'text-size', 12)
         map.setPaintProperty('poi-label', 'text-halo-width', 1.4)
       }
 
@@ -161,6 +179,19 @@ export default function MapContainer({ origin, destination, routes, activeRouteI
       map.fitBounds(bounds, { padding: 80, maxZoom: 15, duration: 600 })
     }
   }, [routes, activeRouteId])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !loadedRef.current || !mapFocus) return
+    if (mapFocus.bbox) {
+      map.fitBounds(
+        [[mapFocus.bbox[0], mapFocus.bbox[1]], [mapFocus.bbox[2], mapFocus.bbox[3]]],
+        { padding: 80, maxZoom: 16, duration: 800 }
+      )
+    } else if (mapFocus.coords) {
+      map.flyTo({ center: mapFocus.coords, zoom: 15, duration: 800 })
+    }
+  }, [mapFocus])
 
   const zoomBy = (delta) => mapRef.current?.zoomTo(mapRef.current.getZoom() + delta)
 

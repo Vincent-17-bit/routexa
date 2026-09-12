@@ -1,3 +1,5 @@
+import LocationInput from './LocationInput'
+
 const MODES = [
   { id: 'car', label: 'Car', icon: 'fas fa-car' },
   { id: 'transit', label: 'Transit / Bus', icon: 'fas fa-bus' },
@@ -7,8 +9,8 @@ const MODES = [
 export default function SearchPanel({
   origin,
   destination,
-  onOriginChange,
-  onDestinationChange,
+  onSelectOrigin,
+  onSelectDestination,
   onOriginFocus,
   onDestinationFocus,
   onReverse,
@@ -37,23 +39,19 @@ export default function SearchPanel({
     <div className="px-4 pt-1 pb-3 flex flex-col gap-3">
       <div className="flex items-center gap-2">
         <div className="flex-1 flex flex-col gap-2">
-          <input
-            value={origin.text}
-            onChange={(e) => onOriginChange(e.target.value)}
-            onFocus={() => { onFocusInput(); onOriginFocus() }}
+          <LocationInput
+            value={origin}
             placeholder="Starting point"
-            className={`w-full h-9 px-3 rounded-lg text-sm bg-black/5 dark:bg-white/10 border focus:outline-none focus:ring-2 focus:ring-accent-light dark:focus:ring-accent-dark ${
-              pickTargetField === 'origin' ? 'border-accent-light dark:border-accent-dark' : 'border-card-light dark:border-card-dark'
-            }`}
+            isTarget={pickTargetField === 'origin'}
+            onSelect={onSelectOrigin}
+            onFocus={() => { onFocusInput(); onOriginFocus() }}
           />
-          <input
-            value={destination.text}
-            onChange={(e) => onDestinationChange(e.target.value)}
-            onFocus={() => { onFocusInput(); onDestinationFocus() }}
+          <LocationInput
+            value={destination}
             placeholder="Destination"
-            className={`w-full h-9 px-3 rounded-lg text-sm bg-black/5 dark:bg-white/10 border focus:outline-none focus:ring-2 focus:ring-accent-light dark:focus:ring-accent-dark ${
-              pickTargetField === 'destination' ? 'border-accent-light dark:border-accent-dark' : 'border-card-light dark:border-card-dark'
-            }`}
+            isTarget={pickTargetField === 'destination'}
+            onSelect={onSelectDestination}
+            onFocus={() => { onFocusInput(); onDestinationFocus() }}
           />
         </div>
 
