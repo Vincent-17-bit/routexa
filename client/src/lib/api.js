@@ -32,7 +32,7 @@ export async function reverseGeocode(lng, lat) {
 export async function fetchDirections(originCoords, destCoords, mode) {
   const profile = DIRECTIONS_PROFILE[mode] || 'driving-traffic'
   const coordStr = `${originCoords[0]},${originCoords[1]};${destCoords[0]},${destCoords[1]}`
-  const url = `https://api.mapbox.com/directions/v5/mapbox/${profile}/${coordStr}?alternatives=true&geometries=geojson&steps=true&overview=full&annotations=speed&access_token=${MAPBOX_TOKEN}`
+  const url = `https://api.mapbox.com/directions/v5/mapbox/${profile}/${coordStr}?alternatives=true&geometries=geojson&steps=true&overview=full&access_token=${MAPBOX_TOKEN}`
   const res = await fetch(url)
   if (!res.ok) throw new Error(`Directions failed: ${res.status}`)
   const data = await res.json()
@@ -43,6 +43,15 @@ export async function fetchDirections(originCoords, destCoords, mode) {
     const distanceKm = route.distance / 1000
     const durationMin = route.duration / 60
     const speedKmh = route.duration > 0 ? distanceKm / (route.duration / 3600) : 0
+    const segments = leg.steps
+      .filter((s) => s.distance > 0)
+      .map((s) => ({
+        name: s.name || s.maneuver.instruction,
+        instruction: s.maneuver.instruction,
+        distanceKm: s.distance / 1000,
+        durationMin: s.duration / 60,
+        speedKmh: s.duration > 0 ? (s.distance / 1000) / (s.duration / 3600) : speedKmh
+      }))
     return {
       id: `route-${i}`,
       via: leg.summary || 'Direct route',
@@ -50,7 +59,7 @@ export async function fetchDirections(originCoords, destCoords, mode) {
       distanceKm,
       speedKmh,
       geometry: route.geometry,
-      steps: leg.steps.map((s) => s.maneuver.instruction).filter(Boolean)
+      segments
     }
   })
 }

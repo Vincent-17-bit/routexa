@@ -7,31 +7,27 @@ mapboxgl.accessToken = MAPBOX_TOKEN
 const NAIROBI_CENTER = [36.8219, -1.2921]
 const EMPTY_FC = { type: 'FeatureCollection', features: [] }
 
-function markerEl(color) {
+function pinEl(color) {
   const el = document.createElement('div')
-  el.style.width = '16px'
-  el.style.height = '16px'
-  el.style.borderRadius = '50%'
-  el.style.background = color
-  el.style.border = '2px solid white'
-  el.style.boxShadow = '0 1px 4px rgba(0,0,0,0.4)'
-  return el
+  el.innerHTML = `
+    <svg width="30" height="40" viewBox="0 0 30 40" xmlns="http://www.w3.org/2000/svg">
+      <path d="M15 0C6.7 0 0 6.7 0 15c0 10.5 15 25 15 25s15-14.5 15-25C30 6.7 23.3 0 15 0z" fill="${color}"/>
+      <circle cx="15" cy="15" r="6" fill="white"/>
+    </svg>`
+  return el.firstElementChild
 }
 
-export default function MapContainer({ origin, destination, routes, activeRouteId, pickingField, onMapPick }) {
+export default function MapContainer({ origin, destination, routes, activeRouteId, pickTargetField, onMapPick }) {
   const containerRef = useRef(null)
   const mapRef = useRef(null)
   const loadedRef = useRef(false)
   const originMarkerRef = useRef(null)
   const destMarkerRef = useRef(null)
-  const pickingFieldRef = useRef(pickingField)
+  const pickTargetRef = useRef(pickTargetField)
 
   useEffect(() => {
-    pickingFieldRef.current = pickingField
-    if (mapRef.current) {
-      mapRef.current.getCanvas().style.cursor = pickingField ? 'crosshair' : 'grab'
-    }
-  }, [pickingField])
+    pickTargetRef.current = pickTargetField
+  }, [pickTargetField])
 
   useEffect(() => {
     if (mapRef.current) return
@@ -70,14 +66,13 @@ export default function MapContainer({ origin, destination, routes, activeRouteI
     })
 
     map.on('click', (e) => {
-      if (!pickingFieldRef.current) return
-      onMapPick(pickingFieldRef.current, [e.lngLat.lng, e.lngLat.lat])
+      onMapPick(pickTargetRef.current, [e.lngLat.lng, e.lngLat.lat])
     })
 
-    map.on('mouseenter', 'poi-label', () => { if (!pickingFieldRef.current) map.getCanvas().style.cursor = 'pointer' })
-    map.on('mouseleave', 'poi-label', () => { if (!pickingFieldRef.current) map.getCanvas().style.cursor = 'grab' })
-    map.on('dragstart', () => { if (!pickingFieldRef.current) map.getCanvas().style.cursor = 'grabbing' })
-    map.on('dragend', () => { if (!pickingFieldRef.current) map.getCanvas().style.cursor = 'grab' })
+    map.on('mouseenter', 'poi-label', () => { map.getCanvas().style.cursor = 'pointer' })
+    map.on('mouseleave', 'poi-label', () => { map.getCanvas().style.cursor = 'grab' })
+    map.on('dragstart', () => { map.getCanvas().style.cursor = 'grabbing' })
+    map.on('dragend', () => { map.getCanvas().style.cursor = 'grab' })
 
     mapRef.current = map
     return () => map.remove()
@@ -90,7 +85,7 @@ export default function MapContainer({ origin, destination, routes, activeRouteI
       return
     }
     if (!originMarkerRef.current) {
-      originMarkerRef.current = new mapboxgl.Marker({ element: markerEl('#2563EB') })
+      originMarkerRef.current = new mapboxgl.Marker({ element: pinEl('#2563EB'), anchor: 'bottom' })
     }
     originMarkerRef.current.setLngLat(origin.coords).addTo(mapRef.current)
   }, [origin?.coords])
@@ -102,7 +97,7 @@ export default function MapContainer({ origin, destination, routes, activeRouteI
       return
     }
     if (!destMarkerRef.current) {
-      destMarkerRef.current = new mapboxgl.Marker({ element: markerEl('#DC2626') })
+      destMarkerRef.current = new mapboxgl.Marker({ element: pinEl('#DC2626'), anchor: 'bottom' })
     }
     destMarkerRef.current.setLngLat(destination.coords).addTo(mapRef.current)
   }, [destination?.coords])
@@ -137,9 +132,9 @@ export default function MapContainer({ origin, destination, routes, activeRouteI
     <div className="absolute inset-0 z-0">
       <div ref={containerRef} className="w-full h-full" />
 
-      {pickingField && (
+      {pickTargetField && (
         <div className="fixed top-16 left-1/2 -translate-x-1/2 z-40 px-4 py-2 rounded-full shadow-lg glass bg-surface-light dark:bg-surface-dark border border-card-light dark:border-card-dark text-sm font-medium">
-          Tap the map to set {pickingField === 'origin' ? 'starting point' : 'destination'}
+          Tap the map to set {pickTargetField === 'origin' ? 'starting point' : 'destination'}
         </div>
       )}
 

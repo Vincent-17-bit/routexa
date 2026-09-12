@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Header from './components/Header'
 import MapContainer from './components/MapContainer'
 import SearchPanel from './components/SearchPanel'
 import RouteResults from './components/RouteResults'
+import { TrafficToast, useTrafficFeed } from './components/TrafficToast'
 import { useSheetState, SHEET_STATE } from './hooks/useSheetState'
 import { useMediaQuery } from './hooks/useMediaQuery'
 import { useDebouncedCallback } from './hooks/useDebounce'
@@ -17,7 +18,7 @@ export default function App() {
   const [origin, setOrigin] = useState(EMPTY_POINT)
   const [destination, setDestination] = useState(EMPTY_POINT)
   const [mode, setMode] = useState('car')
-  const [pickingField, setPickingField] = useState(null)
+  const [focusedField, setFocusedField] = useState(null)
 
   const [routes, setRoutes] = useState([])
   const [activeRouteId, setActiveRouteId] = useState(null)
@@ -72,15 +73,17 @@ export default function App() {
     geocodeField('destination', text)
   }, [geocodeField])
 
-  const handleTogglePick = useCallback((field) => {
-    setPickingField((current) => (current === field ? null : field))
-  }, [])
+  const pickTargetField = useMemo(() => {
+    if (focusedField === 'destination') return 'destination'
+    if (focusedField === 'origin') return 'origin'
+    return origin.coords ? 'destination' : 'origin'
+  }, [focusedField, origin.coords])
 
   const handleMapPick = useCallback(async (field, coords) => {
-    setPickingField(null)
     const result = await reverseGeocode(coords[0], coords[1]).catch(() => ({ text: `${coords[1].toFixed(5)}, ${coords[0].toFixed(5)}`, coords }))
     if (field === 'origin') setOrigin(result)
     else setDestination(result)
+    setFocusedField(null)
   }, [])
 
   const handleReverse = useCallback(() => {
@@ -89,19 +92,21 @@ export default function App() {
     setOrigin(prevDestination)
     setDestination(prevOrigin)
     if (routeDrawn && prevDestination.coords && prevOrigin.coords) {
+      setRoutes([])
       debouncedRecompute(prevDestination.coords, prevOrigin.coords, mode)
     }
   }, [origin, destination, routeDrawn, mode, debouncedRecompute])
 
-  const handleShowRoute = useCallback(() => {
-    computeRoute(origin.coords, destination.coords, mode)
-  }, [origin.coords, destination.coords, mode, computeRoute])
+  const handleShowRoute = useCallback(async () => {
+    await computeRoute(origin.coords, destination.coords, mode)
+    setSheetState((s) => Math.max(s, SHEET_STATE.PREVIEW))
+  }, [origin.coords, destination.coords, mode, computeRoute, setSheetState])
 
   const handleCancel = useCallback(() => {
     requestIdRef.current++
     setOrigin(EMPTY_POINT)
     setDestination(EMPTY_POINT)
-    setPickingField(null)
+    setFocusedField(null)
     setRoutes([])
     setActiveRouteId(null)
     setRouteDrawn(false)
@@ -114,6 +119,8 @@ export default function App() {
   }, [setSheetState])
 
   const canShowRoute = Boolean(origin.coords && destination.coords) && !routeLoading
+  const activeRoute = routes.find((r) => r.id === activeRouteId)
+  const { current: toastMessage, feed } = useTrafficFeed(routeDrawn ? activeRoute?.segments : null)
 
   const panelContent = (
     <>
@@ -122,13 +129,14 @@ export default function App() {
         destination={destination}
         onOriginChange={handleOriginChange}
         onDestinationChange={handleDestinationChange}
+        onOriginFocus={() => setFocusedField('origin')}
+        onDestinationFocus={() => setFocusedField('destination')}
         onReverse={handleReverse}
         onCancel={handleCancel}
         onFocusInput={handleFocusInput}
         mode={mode}
         onModeChange={setMode}
-        pickingField={pickingField}
-        onTogglePick={handleTogglePick}
+        pickTargetField={pickTargetField}
         canShowRoute={canShowRoute}
         onShowRoute={handleShowRoute}
         routeLoading={routeLoading}
@@ -143,6 +151,7 @@ export default function App() {
           activeRouteId={activeRouteId}
           onSelectRoute={setActiveRouteId}
           sheetState={isMobile ? sheetState : SHEET_STATE.FULL}
+          feed={feed}
         />
       )}
     </>
@@ -156,9 +165,10 @@ export default function App() {
         destination={destination}
         routes={routeDrawn ? routes : []}
         activeRouteId={activeRouteId}
-        pickingField={pickingField}
+        pickTargetField={pickTargetField}
         onMapPick={handleMapPick}
       />
+      <TrafficToast message={toastMessage} />
 
       {isMobile ? (
         <div
