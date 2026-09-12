@@ -21,10 +21,7 @@ export default function RouteResults({ routes, activeRouteId, onSelectRoute, she
   return (
     <div className="px-4 pb-4 flex flex-col gap-3 overflow-y-auto">
       <div className="flex items-center justify-between border-l-4 pl-3 py-1" style={{ borderColor: '#2563EB' }}>
-        <div>
-          <p className="text-sm font-semibold">via {active.via} · {active.durationMin} min ({active.distanceKm.toFixed(1)} km)</p>
-          {active.hasTolls && <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">⚠️ This route has tolls</p>}
-        </div>
+        <p className="text-sm font-semibold">via {active.via} · {active.durationMin} min ({active.distanceKm.toFixed(1)} km)</p>
         <TrafficBadge speedKmh={active.speedKmh} />
       </div>
 
