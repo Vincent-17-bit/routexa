@@ -37,7 +37,7 @@ export function TrafficToast({ message }) {
   return (
     <div
       key={message.id}
-      className={`fixed top-16 left-1/2 -translate-x-1/2 z-50 w-[min(92vw,360px)] rounded-xl shadow-2xl glass bg-surface-light dark:bg-surface-dark border-l-4 ${meta.border} overflow-hidden toast-slide-in`}
+      className={`fixed top-28 left-1/2 -translate-x-1/2 z-50 w-[min(92vw,360px)] rounded-xl shadow-2xl glass bg-surface-light dark:bg-surface-dark border-l-4 ${meta.border} overflow-hidden toast-slide-in`}
     >
       <div className="px-3 py-2.5 flex items-start gap-2">
         <span className={`text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full shrink-0 ${meta.badge} ${meta.text}`}>

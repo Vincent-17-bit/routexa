@@ -1,11 +1,13 @@
 import { useEffect, useRef } from 'react'
 import mapboxgl from 'mapbox-gl'
 import { MAPBOX_TOKEN } from '../lib/api'
+import { KNOWN_MAKI_IDS, buildMakiMatchExpression } from '../lib/poiCategories'
 
 mapboxgl.accessToken = MAPBOX_TOKEN
 
 const NAIROBI_CENTER = [36.8219, -1.2921]
 const EMPTY_FC = { type: 'FeatureCollection', features: [] }
+const DEFAULT_POI_COLOR = '#64748B'
 
 function pinEl(color) {
   const el = document.createElement('div')
@@ -62,11 +64,45 @@ export default function MapContainer({ origin, destination, routes, activeRouteI
         paint: { 'line-color': '#2563EB', 'line-width': 7 }
       })
 
+      map.addSource('mapbox-traffic', { type: 'vector', url: 'mapbox://mapbox.mapbox-traffic-v1' })
+      map.addLayer({
+        id: 'traffic-layer',
+        type: 'line',
+        source: 'mapbox-traffic',
+        'source-layer': 'traffic',
+        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        paint: {
+          'line-width': ['interpolate', ['linear'], ['zoom'], 10, 1.5, 16, 4],
+          'line-color': [
+            'match',
+            ['get', 'congestion'],
+            'low', '#059669',
+            'moderate', '#D97706',
+            'heavy', '#DC2626',
+            'severe', '#DC2626',
+            '#059669'
+          ]
+        }
+      })
+
+      if (map.getLayer('poi-label')) {
+        map.setPaintProperty('poi-label', 'icon-color', buildMakiMatchExpression(DEFAULT_POI_COLOR))
+        map.setLayoutProperty('poi-label', 'icon-size', 1.25)
+        map.setPaintProperty('poi-label', 'text-halo-width', 1.4)
+      }
+
       loadedRef.current = true
     })
 
     map.on('click', (e) => {
-      onMapPick(pickTargetRef.current, [e.lngLat.lng, e.lngLat.lat])
+      const target = pickTargetRef.current
+      const poiFeatures = map.queryRenderedFeatures(e.point, { layers: ['poi-label'] })
+      const poi = poiFeatures.find((f) => KNOWN_MAKI_IDS.has(f.properties?.maki))
+      if (poi) {
+        onMapPick(target, poi.geometry.coordinates, poi.properties.name)
+        return
+      }
+      onMapPick(target, [e.lngLat.lng, e.lngLat.lat])
     })
 
     map.on('mouseenter', 'poi-label', () => { map.getCanvas().style.cursor = 'pointer' })

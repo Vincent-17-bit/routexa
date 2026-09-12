@@ -7,11 +7,13 @@ import { TrafficToast, useTrafficFeed } from './components/TrafficToast'
 import { useSheetState, SHEET_STATE } from './hooks/useSheetState'
 import { useMediaQuery } from './hooks/useMediaQuery'
 import { useDebouncedCallback } from './hooks/useDebounce'
+import { useSystemTheme } from './hooks/useSystemTheme'
 import { checkHealth, forwardGeocode, reverseGeocode, fetchDirections } from './lib/api'
 
 const EMPTY_POINT = { text: '', coords: null }
 
 export default function App() {
+  useSystemTheme()
   const isMobile = !useMediaQuery('(min-width: 640px)')
   const { state: sheetState, setState: setSheetState, reset: resetSheet, dragHandlers } = useSheetState()
 
@@ -79,8 +81,10 @@ export default function App() {
     return origin.coords ? 'destination' : 'origin'
   }, [focusedField, origin.coords])
 
-  const handleMapPick = useCallback(async (field, coords) => {
-    const result = await reverseGeocode(coords[0], coords[1]).catch(() => ({ text: `${coords[1].toFixed(5)}, ${coords[0].toFixed(5)}`, coords }))
+  const handleMapPick = useCallback(async (field, coords, presetName) => {
+    const result = presetName
+      ? { text: presetName, coords }
+      : await reverseGeocode(coords[0], coords[1]).catch(() => ({ text: `${coords[1].toFixed(5)}, ${coords[0].toFixed(5)}`, coords }))
     if (field === 'origin') setOrigin(result)
     else setDestination(result)
     setFocusedField(null)
@@ -184,7 +188,7 @@ export default function App() {
           <div className="flex-1 overflow-hidden">{panelContent}</div>
         </div>
       ) : (
-        <div className="fixed top-16 left-4 z-40 w-96 max-h-[calc(100vh-5rem)] overflow-y-auto rounded-2xl shadow-2xl glass bg-surface-light dark:bg-surface-dark border border-card-light dark:border-card-dark">
+        <div className="fixed top-16 left-4 z-40 w-96 max-w-[92vw] max-h-[calc(100vh-5rem)] overflow-y-auto rounded-2xl shadow-2xl glass bg-surface-light dark:bg-surface-dark border border-card-light dark:border-card-dark">
           {panelContent}
         </div>
       )}
