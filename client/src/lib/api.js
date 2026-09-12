@@ -62,7 +62,6 @@ export async function fetchDirections(originCoords, destCoords, mode) {
       .filter((s) => s.distance > 0)
       .map((s) => ({
         name: s.name || s.maneuver.instruction,
-        instruction: s.maneuver.instruction,
         distanceKm: s.distance / 1000,
         durationMin: s.duration / 60,
         speedKmh: s.duration > 0 ? (s.distance / 1000) / (s.duration / 3600) : speedKmh

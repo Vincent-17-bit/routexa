@@ -43,18 +43,6 @@ export default function RouteResults({ routes, activeRouteId, onSelectRoute, she
           )}
 
           <TrafficFeed feed={feed} />
-
-          <div className="flex flex-col gap-2">
-            <p className="text-xs font-medium text-text-secondary-light dark:text-text-secondary-dark">Turn-by-turn</p>
-            <ol className="flex flex-col gap-2">
-              {active.segments.map((segment, i) => (
-                <li key={i} className="text-sm flex gap-2">
-                  <span className="text-text-secondary-light dark:text-text-secondary-dark">{i + 1}.</span>
-                  {segment.instruction}
-                </li>
-              ))}
-            </ol>
-          </div>
         </>
       )}
     </div>

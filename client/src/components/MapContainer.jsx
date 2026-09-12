@@ -8,6 +8,9 @@ mapboxgl.accessToken = MAPBOX_TOKEN
 const NAIROBI_CENTER = [36.8219, -1.2921]
 const EMPTY_FC = { type: 'FeatureCollection', features: [] }
 const MAX_POI_MARKERS = 150
+const LIGHT_STYLE = 'mapbox://styles/mapbox/light-v11'
+const DARK_STYLE = 'mapbox://styles/mapbox/dark-v11'
+const prefersDarkQuery = window.matchMedia('(prefers-color-scheme: dark)')
 
 function pinEl(color) {
   const el = document.createElement('div')
@@ -19,13 +22,22 @@ function pinEl(color) {
   return el.firstElementChild
 }
 
-function poiPinEl(category) {
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]))
+}
+
+function poiPinEl(category, name) {
   const el = document.createElement('div')
   el.style.width = '22px'
   el.style.height = '28px'
   el.style.position = 'relative'
   el.style.cursor = 'pointer'
   el.innerHTML = `
+    <div style="position:absolute;bottom:32px;left:50%;transform:translateX(-50%);max-width:110px;">
+      <span class="text-[10px] font-medium leading-tight px-1.5 py-0.5 rounded-md shadow-sm bg-white/95 dark:bg-slate-900/90 text-slate-800 dark:text-slate-100 border border-slate-200/70 dark:border-slate-700/70 block truncate">${escapeHtml(name)}</span>
+    </div>
     <svg width="22" height="28" viewBox="0 0 22 28" xmlns="http://www.w3.org/2000/svg" style="position:absolute;inset:0;">
       <path d="M11 0C4.9 0 0 4.9 0 11c0 7.7 11 17 11 17s11-9.3 11-17C22 4.9 17.1 0 11 0z" fill="${category.color}" stroke="white" stroke-width="1"/>
     </svg>
@@ -43,6 +55,9 @@ export default function MapContainer({ origin, destination, routes, activeRouteI
   const pickTargetRef = useRef(pickTargetField)
   const onMapPickRef = useRef(onMapPick)
   const poiMarkersRef = useRef(new Map())
+  const routesRef = useRef(routes)
+  const activeRouteIdRef = useRef(activeRouteId)
+  const applyRouteDataRef = useRef(() => {})
 
   useEffect(() => {
     pickTargetRef.current = pickTargetField
@@ -55,9 +70,10 @@ export default function MapContainer({ origin, destination, routes, activeRouteI
   useEffect(() => {
     if (mapRef.current) return
 
+    const isDark = prefersDarkQuery.matches
     const map = new mapboxgl.Map({
       container: containerRef.current,
-      style: 'mapbox://styles/mapbox/light-v11',
+      style: isDark ? DARK_STYLE : LIGHT_STYLE,
       center: NAIROBI_CENTER,
       zoom: 13,
       attributionControl: false
@@ -82,7 +98,7 @@ export default function MapContainer({ origin, destination, routes, activeRouteI
 
         if (!poiMarkersRef.current.has(key)) {
           const name = f.properties?.name || category.label
-          const el = poiPinEl(category)
+          const el = poiPinEl(category, name)
           el.title = name
           el.addEventListener('click', (ev) => {
             ev.stopPropagation()
@@ -101,8 +117,23 @@ export default function MapContainer({ origin, destination, routes, activeRouteI
       }
     }
 
-    map.on('load', () => {
-      map.setPaintProperty('background', 'background-color', '#EBF6EE')
+    const applyRouteData = () => {
+      if (!loadedRef.current) return
+      const currentRoutes = routesRef.current
+      const currentActiveId = activeRouteIdRef.current
+      const active = currentRoutes.find((r) => r.id === currentActiveId)
+      const alts = currentRoutes.filter((r) => r.id !== currentActiveId)
+      map.getSource('route-active')?.setData(active ? { type: 'Feature', geometry: active.geometry } : EMPTY_FC)
+      map.getSource('route-alts')?.setData({
+        type: 'FeatureCollection',
+        features: alts.map((r) => ({ type: 'Feature', geometry: r.geometry }))
+      })
+    }
+    applyRouteDataRef.current = applyRouteData
+
+    const setupStyleLayers = () => {
+      loadedRef.current = false
+      map.setPaintProperty('background', 'background-color', prefersDarkQuery.matches ? '#0F172A' : '#EBF6EE')
       map.getCanvas().style.cursor = 'grab'
 
       map.addSource('route-alts', { type: 'geojson', data: EMPTY_FC })
@@ -151,10 +182,17 @@ export default function MapContainer({ origin, destination, routes, activeRouteI
       }
 
       loadedRef.current = true
+      applyRouteDataRef.current()
       refreshPOIMarkers()
-    })
+    }
 
+    map.on('style.load', setupStyleLayers)
     map.on('idle', refreshPOIMarkers)
+
+    const handleThemeChange = (e) => {
+      map.setStyle(e.matches ? DARK_STYLE : LIGHT_STYLE)
+    }
+    prefersDarkQuery.addEventListener('change', handleThemeChange)
 
     map.on('click', (e) => {
       const target = pickTargetRef.current
@@ -174,6 +212,7 @@ export default function MapContainer({ origin, destination, routes, activeRouteI
 
     mapRef.current = map
     return () => {
+      prefersDarkQuery.removeEventListener('change', handleThemeChange)
       for (const marker of poiMarkersRef.current.values()) marker.remove()
       poiMarkersRef.current.clear()
       map.remove()
@@ -205,20 +244,14 @@ export default function MapContainer({ origin, destination, routes, activeRouteI
   }, [destination?.coords])
 
   useEffect(() => {
+    routesRef.current = routes
+    activeRouteIdRef.current = activeRouteId
     const map = mapRef.current
     if (!map || !loadedRef.current) return
 
+    applyRouteDataRef.current()
+
     const active = routes.find((r) => r.id === activeRouteId)
-    const alts = routes.filter((r) => r.id !== activeRouteId)
-
-    map.getSource('route-active')?.setData(
-      active ? { type: 'Feature', geometry: active.geometry } : EMPTY_FC
-    )
-    map.getSource('route-alts')?.setData({
-      type: 'FeatureCollection',
-      features: alts.map((r) => ({ type: 'Feature', geometry: r.geometry }))
-    })
-
     if (active?.geometry?.coordinates?.length) {
       const bounds = active.geometry.coordinates.reduce(
         (b, c) => b.extend(c),
