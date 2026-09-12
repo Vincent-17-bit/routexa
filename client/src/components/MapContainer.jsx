@@ -1,13 +1,13 @@
 import { useEffect, useRef } from 'react'
 import mapboxgl from 'mapbox-gl'
 import { MAPBOX_TOKEN } from '../lib/api'
-import { KNOWN_MAKI_IDS, buildMakiMatchExpression } from '../lib/poiCategories'
+import { KNOWN_MAKI_IDS, MAKI_TO_CATEGORY } from '../lib/poiCategories'
 
 mapboxgl.accessToken = MAPBOX_TOKEN
 
 const NAIROBI_CENTER = [36.8219, -1.2921]
 const EMPTY_FC = { type: 'FeatureCollection', features: [] }
-const DEFAULT_POI_COLOR = '#64748B'
+const MAX_POI_MARKERS = 150
 
 function pinEl(color) {
   const el = document.createElement('div')
@@ -19,6 +19,21 @@ function pinEl(color) {
   return el.firstElementChild
 }
 
+function poiPinEl(category) {
+  const el = document.createElement('div')
+  el.style.width = '22px'
+  el.style.height = '28px'
+  el.style.position = 'relative'
+  el.style.cursor = 'pointer'
+  el.innerHTML = `
+    <svg width="22" height="28" viewBox="0 0 22 28" xmlns="http://www.w3.org/2000/svg" style="position:absolute;inset:0;">
+      <path d="M11 0C4.9 0 0 4.9 0 11c0 7.7 11 17 11 17s11-9.3 11-17C22 4.9 17.1 0 11 0z" fill="${category.color}" stroke="white" stroke-width="1"/>
+    </svg>
+    <i class="fas ${category.fa}" style="position:absolute;top:4px;left:0;width:22px;text-align:center;color:#fff;font-size:9px;line-height:1;"></i>
+  `
+  return el
+}
+
 export default function MapContainer({ origin, destination, routes, activeRouteId, pickTargetField, onMapPick, mapFocus }) {
   const containerRef = useRef(null)
   const mapRef = useRef(null)
@@ -26,10 +41,16 @@ export default function MapContainer({ origin, destination, routes, activeRouteI
   const originMarkerRef = useRef(null)
   const destMarkerRef = useRef(null)
   const pickTargetRef = useRef(pickTargetField)
+  const onMapPickRef = useRef(onMapPick)
+  const poiMarkersRef = useRef(new Map())
 
   useEffect(() => {
     pickTargetRef.current = pickTargetField
   }, [pickTargetField])
+
+  useEffect(() => {
+    onMapPickRef.current = onMapPick
+  }, [onMapPick])
 
   useEffect(() => {
     if (mapRef.current) return
@@ -41,6 +62,44 @@ export default function MapContainer({ origin, destination, routes, activeRouteI
       zoom: 13,
       attributionControl: false
     })
+
+    const refreshPOIMarkers = () => {
+      if (!loadedRef.current) return
+      const features = map.querySourceFeatures('composite', {
+        sourceLayer: 'poi_label',
+        filter: ['in', ['get', 'maki'], ['literal', KNOWN_MAKI_IDS]]
+      })
+
+      const seen = new Set()
+      for (const f of features) {
+        if (seen.size >= MAX_POI_MARKERS) break
+        const category = MAKI_TO_CATEGORY[f.properties?.maki]
+        if (!category) continue
+        const [lng, lat] = f.geometry.coordinates
+        const key = `${category.id}:${lng.toFixed(5)}:${lat.toFixed(5)}`
+        if (seen.has(key)) continue
+        seen.add(key)
+
+        if (!poiMarkersRef.current.has(key)) {
+          const name = f.properties?.name || category.label
+          const el = poiPinEl(category)
+          el.title = name
+          el.addEventListener('click', (ev) => {
+            ev.stopPropagation()
+            onMapPickRef.current(pickTargetRef.current, [lng, lat], name)
+          })
+          const marker = new mapboxgl.Marker({ element: el, anchor: 'bottom' }).setLngLat([lng, lat]).addTo(map)
+          poiMarkersRef.current.set(key, marker)
+        }
+      }
+
+      for (const [key, marker] of poiMarkersRef.current) {
+        if (!seen.has(key)) {
+          marker.remove()
+          poiMarkersRef.current.delete(key)
+        }
+      }
+    }
 
     map.on('load', () => {
       map.setPaintProperty('background', 'background-color', '#EBF6EE')
@@ -86,45 +145,26 @@ export default function MapContainer({ origin, destination, routes, activeRouteI
       })
 
       if (map.getLayer('poi-label')) {
-        const knownMakiList = Array.from(KNOWN_MAKI_IDS)
-        map.addLayer({
-          id: 'poi-halo',
-          type: 'circle',
-          source: 'composite',
-          'source-layer': 'poi_label',
-          filter: ['in', ['get', 'maki'], ['literal', knownMakiList]],
-          paint: {
-            'circle-radius': 9,
-            'circle-color': buildMakiMatchExpression(DEFAULT_POI_COLOR),
-            'circle-opacity': 0.16,
-            'circle-stroke-width': 1.5,
-            'circle-stroke-color': buildMakiMatchExpression(DEFAULT_POI_COLOR),
-            'circle-stroke-opacity': 0.55
-          }
-        }, 'poi-label')
-
-        map.setLayerZoomRange('poi-label', 0, 24)
-        map.setPaintProperty('poi-label', 'icon-color', buildMakiMatchExpression(DEFAULT_POI_COLOR))
-        map.setLayoutProperty('poi-label', 'icon-size', ['interpolate', ['linear'], ['zoom'], 10, 0.85, 14, 1.25, 18, 1.6])
-        map.setLayoutProperty('poi-label', 'icon-allow-overlap', true)
-        map.setLayoutProperty('poi-label', 'icon-ignore-placement', true)
-        map.setLayoutProperty('poi-label', 'text-optional', true)
-        map.setLayoutProperty('poi-label', 'text-size', 12)
-        map.setPaintProperty('poi-label', 'text-halo-width', 1.4)
+        const existingFilter = map.getFilter('poi-label')
+        const hideMatched = ['!', ['in', ['get', 'maki'], ['literal', KNOWN_MAKI_IDS]]]
+        map.setFilter('poi-label', existingFilter ? ['all', existingFilter, hideMatched] : hideMatched)
       }
 
       loadedRef.current = true
+      refreshPOIMarkers()
     })
+
+    map.on('idle', refreshPOIMarkers)
 
     map.on('click', (e) => {
       const target = pickTargetRef.current
       const poiFeatures = map.queryRenderedFeatures(e.point, { layers: ['poi-label'] })
       const poi = poiFeatures.find((f) => f.properties?.name)
       if (poi) {
-        onMapPick(target, poi.geometry.coordinates, poi.properties.name)
+        onMapPickRef.current(target, poi.geometry.coordinates, poi.properties.name)
         return
       }
-      onMapPick(target, [e.lngLat.lng, e.lngLat.lat])
+      onMapPickRef.current(target, [e.lngLat.lng, e.lngLat.lat])
     })
 
     map.on('mouseenter', 'poi-label', () => { map.getCanvas().style.cursor = 'pointer' })
@@ -133,8 +173,12 @@ export default function MapContainer({ origin, destination, routes, activeRouteI
     map.on('dragend', () => { map.getCanvas().style.cursor = 'grab' })
 
     mapRef.current = map
-    return () => map.remove()
-  }, [onMapPick])
+    return () => {
+      for (const marker of poiMarkersRef.current.values()) marker.remove()
+      poiMarkersRef.current.clear()
+      map.remove()
+    }
+  }, [])
 
   useEffect(() => {
     if (!origin?.coords) {
