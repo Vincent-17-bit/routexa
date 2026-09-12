@@ -38,7 +38,7 @@ export default function MapContainer({ origin, destination, routes, activeRouteI
       container: containerRef.current,
       style: 'mapbox://styles/mapbox/light-v11',
       center: NAIROBI_CENTER,
-      zoom: 12,
+      zoom: 13,
       attributionControl: false
     })
 
@@ -103,8 +103,12 @@ export default function MapContainer({ origin, destination, routes, activeRouteI
           }
         }, 'poi-label')
 
+        map.setLayerZoomRange('poi-label', 0, 24)
         map.setPaintProperty('poi-label', 'icon-color', buildMakiMatchExpression(DEFAULT_POI_COLOR))
-        map.setLayoutProperty('poi-label', 'icon-size', 1.25)
+        map.setLayoutProperty('poi-label', 'icon-size', ['interpolate', ['linear'], ['zoom'], 10, 0.85, 14, 1.25, 18, 1.6])
+        map.setLayoutProperty('poi-label', 'icon-allow-overlap', true)
+        map.setLayoutProperty('poi-label', 'icon-ignore-placement', true)
+        map.setLayoutProperty('poi-label', 'text-optional', true)
         map.setLayoutProperty('poi-label', 'text-size', 12)
         map.setPaintProperty('poi-label', 'text-halo-width', 1.4)
       }
@@ -115,7 +119,7 @@ export default function MapContainer({ origin, destination, routes, activeRouteI
     map.on('click', (e) => {
       const target = pickTargetRef.current
       const poiFeatures = map.queryRenderedFeatures(e.point, { layers: ['poi-label'] })
-      const poi = poiFeatures.find((f) => KNOWN_MAKI_IDS.has(f.properties?.maki))
+      const poi = poiFeatures.find((f) => f.properties?.name)
       if (poi) {
         onMapPick(target, poi.geometry.coordinates, poi.properties.name)
         return
