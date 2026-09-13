@@ -1,31 +1,70 @@
 import { useEffect, useRef, useState } from 'react'
-import { getStatusMeta, segmentMessage } from '../lib/trafficStatus'
+import { getStatusMeta, resolveTrafficStatus, segmentMessage } from '../lib/trafficStatus'
 
-const CYCLE_MS = 4500
+const QUEUE_INTERVAL_MS = 4000
+const RENOTIFY_MS = 5 * 60 * 1000
 
-export function useTrafficFeed(segments) {
+export function useTrafficWatcher(segments, getAheadKmRef) {
   const [current, setCurrent] = useState(null)
   const [feed, setFeed] = useState([])
-  const indexRef = useRef(0)
+  const lastSentRef = useRef(new Map())
+  const queueRef = useRef([])
+  const timerRef = useRef(null)
+
+  const drainQueue = () => {
+    if (timerRef.current) return
+    const step = () => {
+      const next = queueRef.current.shift()
+      if (!next) {
+        timerRef.current = null
+        return
+      }
+      setCurrent(next)
+      setFeed((prev) => [next, ...prev].slice(0, 30))
+      timerRef.current = setTimeout(step, QUEUE_INTERVAL_MS)
+    }
+    step()
+  }
 
   useEffect(() => {
-    indexRef.current = 0
-    setFeed([])
-    setCurrent(null)
-    if (!segments?.length) return
-
-    const emit = () => {
-      const segment = segments[indexRef.current % segments.length]
-      const message = { id: `${Date.now()}-${indexRef.current}`, ts: Date.now(), ...segmentMessage(segment) }
-      setCurrent(message)
-      setFeed((prev) => [message, ...prev].slice(0, 20))
-      indexRef.current += 1
+    if (!segments?.length) {
+      lastSentRef.current.clear()
+      queueRef.current = []
+      if (timerRef.current) {
+        clearTimeout(timerRef.current)
+        timerRef.current = null
+      }
+      setCurrent(null)
+      return
     }
 
-    emit()
-    const interval = setInterval(emit, CYCLE_MS)
-    return () => clearInterval(interval)
+    const now = Date.now()
+    const getAheadKm = getAheadKmRef?.current
+
+    segments.forEach((segment, index) => {
+      const aheadKm = getAheadKm ? getAheadKm(index) : null
+      if (aheadKm === -1) return
+
+      const status = resolveTrafficStatus(segment.speedKmh)
+      const key = segment.name
+      const prior = lastSentRef.current.get(key)
+      const isNew = !prior
+      const changed = prior && prior.status !== status
+      const stale = prior && now - prior.ts >= RENOTIFY_MS
+
+      if (isNew || changed || stale) {
+        lastSentRef.current.set(key, { status, ts: now })
+        const message = segmentMessage(segment, aheadKm)
+        queueRef.current.push({ id: `${now}-${index}-${Math.random().toString(36).slice(2, 7)}`, ts: now, ...message })
+      }
+    })
+
+    drainQueue()
   }, [segments])
+
+  useEffect(() => () => {
+    if (timerRef.current) clearTimeout(timerRef.current)
+  }, [])
 
   return { current, feed }
 }
@@ -46,7 +85,7 @@ export function TrafficToast({ message }) {
         <p className="text-xs leading-snug text-text-primary-light dark:text-text-primary-dark">{message.text}</p>
       </div>
       <div className="h-0.5 bg-black/10 dark:bg-white/10">
-        <div className={`h-full ${meta.badge} toast-countdown`} style={{ animationDuration: `${CYCLE_MS}ms` }} />
+        <div className={`h-full ${meta.badge} toast-countdown`} style={{ animationDuration: `${QUEUE_INTERVAL_MS}ms` }} />
       </div>
     </div>
   )

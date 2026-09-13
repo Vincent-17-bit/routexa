@@ -35,11 +35,21 @@ export function getStatusMeta(status) {
   return STATUS_META[status]
 }
 
-export function segmentMessage(segment) {
+export function segmentMessage(segment, aheadKm) {
   const status = resolveTrafficStatus(segment.speedKmh)
   const speed = Math.round(segment.speedKmh)
   const name = segment.name
-  if (status === TRAFFIC_STATUS.HEAVY) return { status, text: `Heavy traffic on ${name} — crawling at ${speed} km/h` }
-  if (status === TRAFFIC_STATUS.MODERATE) return { status, text: `Moderate delay on ${name} — averaging ${speed} km/h` }
-  return { status, text: `Clear flow on ${name} — cruising at ${speed} km/h` }
+  const lead = aheadKm == null
+    ? `At ${name}, `
+    : aheadKm < 1
+      ? `In ${Math.round(aheadKm * 1000)} m, `
+      : `In ${aheadKm.toFixed(1)} km, `
+
+  if (status === TRAFFIC_STATUS.HEAVY) {
+    return { status, text: aheadKm == null ? `${lead}it's very stuck — barely moving.` : `${lead}${name} is very stuck — barely moving.` }
+  }
+  if (status === TRAFFIC_STATUS.MODERATE) {
+    return { status, text: aheadKm == null ? `${lead}there's moderate traffic but moving.` : `${lead}moderate traffic at ${name}.` }
+  }
+  return { status, text: aheadKm == null ? `${lead}traffic is clear — cruising at ${speed} km/h.` : `${lead}${name} is clear — cruising at ${speed} km/h.` }
 }

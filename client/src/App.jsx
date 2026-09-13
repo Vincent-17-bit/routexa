@@ -3,14 +3,16 @@ import Header from './components/Header'
 import MapContainer from './components/MapContainer'
 import SearchPanel from './components/SearchPanel'
 import RouteResults from './components/RouteResults'
-import { TrafficToast, useTrafficFeed } from './components/TrafficToast'
+import { TrafficToast, useTrafficWatcher } from './components/TrafficToast'
 import { useSheetState, SHEET_STATE } from './hooks/useSheetState'
 import { useMediaQuery } from './hooks/useMediaQuery'
 import { useDebouncedCallback } from './hooks/useDebounce'
 import { useSystemTheme } from './hooks/useSystemTheme'
+import { useNavigation } from './hooks/useNavigation'
 import { checkHealth, reverseGeocode, fetchDirections } from './lib/api'
 
 const EMPTY_POINT = { text: '', coords: null }
+const POLL_INTERVAL_MS = 45000
 
 export default function App() {
   useSystemTheme()
@@ -31,6 +33,13 @@ export default function App() {
   const [userLocation, setUserLocation] = useState(null)
 
   const requestIdRef = useRef(0)
+  const routesRef = useRef(routes)
+  const activeRouteIdRef = useRef(activeRouteId)
+  const routeLoadingRef = useRef(routeLoading)
+
+  useEffect(() => { routesRef.current = routes }, [routes])
+  useEffect(() => { activeRouteIdRef.current = activeRouteId }, [activeRouteId])
+  useEffect(() => { routeLoadingRef.current = routeLoading }, [routeLoading])
 
   useEffect(() => {
     checkHealth()
@@ -97,16 +106,22 @@ export default function App() {
     setFocusedField(null)
   }, [])
 
+  const activeRoute = routes.find((r) => r.id === activeRouteId)
+  const nav = useNavigation(activeRoute)
+  const getAheadKmRef = useRef(null)
+  useEffect(() => { getAheadKmRef.current = nav.distanceAheadFor }, [nav.distanceAheadFor])
+
   const handleReverse = useCallback(() => {
     const prevOrigin = origin
     const prevDestination = destination
     setOrigin(prevDestination)
     setDestination(prevOrigin)
+    nav.stop()
     if (routeDrawn && prevDestination.coords && prevOrigin.coords) {
       setRoutes([])
       debouncedRecompute(prevDestination.coords, prevOrigin.coords, mode)
     }
-  }, [origin, destination, routeDrawn, mode, debouncedRecompute])
+  }, [origin, destination, routeDrawn, mode, debouncedRecompute, nav])
 
   const handleShowRoute = useCallback(async () => {
     await computeRoute(origin.coords, destination.coords, mode)
@@ -115,6 +130,7 @@ export default function App() {
 
   const handleCancel = useCallback(() => {
     requestIdRef.current++
+    nav.stop()
     setOrigin(EMPTY_POINT)
     setDestination(EMPTY_POINT)
     setFocusedField(null)
@@ -123,15 +139,32 @@ export default function App() {
     setRouteDrawn(false)
     setRouteError(null)
     resetSheet()
-  }, [resetSheet])
+  }, [resetSheet, nav])
 
   const handleFocusInput = useCallback(() => {
     setSheetState((s) => Math.max(s, SHEET_STATE.PREVIEW))
   }, [setSheetState])
 
   const canShowRoute = Boolean(origin.coords && destination.coords) && !routeLoading
-  const activeRoute = routes.find((r) => r.id === activeRouteId)
-  const { current: toastMessage, feed } = useTrafficFeed(routeDrawn ? activeRoute?.segments : null)
+
+  useEffect(() => {
+    if (!routeDrawn || !origin.coords || !destination.coords) return
+    const interval = setInterval(async () => {
+      if (routeLoadingRef.current) return
+      try {
+        const results = await fetchDirections(origin.coords, destination.coords, mode)
+        const prevActive = routesRef.current.find((r) => r.id === activeRouteIdRef.current)
+        const matched = prevActive ? results.find((r) => r.via === prevActive.via) : null
+        setRoutes(results)
+        setActiveRouteId((matched || results[0])?.id ?? null)
+      } catch {
+        // keep showing the last known-good route data if a poll fails
+      }
+    }, POLL_INTERVAL_MS)
+    return () => clearInterval(interval)
+  }, [routeDrawn, origin.coords, destination.coords, mode])
+
+  const { current: toastMessage, feed } = useTrafficWatcher(routeDrawn ? activeRoute?.segments : null, getAheadKmRef)
 
   const panelContent = (
     <>
@@ -158,6 +191,33 @@ export default function App() {
         <p className="px-4 pb-2 text-xs text-rose-600 dark:text-rose-400">{routeError}</p>
       )}
       {routeDrawn && (!isMobile || sheetState >= SHEET_STATE.PREVIEW) && (
+        <div className="px-4 pb-2 flex items-center gap-2">
+          {nav.isNavigating ? (
+            <button
+              onClick={nav.stop}
+              className="flex-1 h-9 rounded-lg text-sm font-semibold bg-rose-600 text-white hover:brightness-110 transition"
+            >
+              Cancel navigation
+            </button>
+          ) : (
+            <button
+              onClick={nav.start}
+              className="flex-1 h-9 rounded-lg text-sm font-semibold bg-accent-light dark:bg-accent-dark text-white hover:brightness-110 transition"
+            >
+              Let's go
+            </button>
+          )}
+          {nav.isNavigating && (
+            <span className="text-xs text-text-secondary-light dark:text-text-secondary-dark shrink-0">
+              {nav.remainingKm.toFixed(1)} km left
+            </span>
+          )}
+        </div>
+      )}
+      {nav.error && (
+        <p className="px-4 pb-2 text-xs text-rose-600 dark:text-rose-400">{nav.error}</p>
+      )}
+      {routeDrawn && (!isMobile || sheetState >= SHEET_STATE.PREVIEW) && (
         <RouteResults
           routes={routes}
           activeRouteId={activeRouteId}
@@ -180,6 +240,7 @@ export default function App() {
         pickTargetField={pickTargetField}
         onMapPick={handleMapPick}
         mapFocus={mapFocus}
+        livePosition={nav.livePosition}
       />
       <TrafficToast message={toastMessage} />
 

@@ -79,12 +79,13 @@ function poiPinEl(category, name) {
   return el
 }
 
-export default function MapContainer({ origin, destination, routes, activeRouteId, pickTargetField, onMapPick, mapFocus }) {
+export default function MapContainer({ origin, destination, routes, activeRouteId, pickTargetField, onMapPick, mapFocus, livePosition }) {
   const containerRef = useRef(null)
   const mapRef = useRef(null)
   const loadedRef = useRef(false)
   const originMarkerRef = useRef(null)
   const destMarkerRef = useRef(null)
+  const liveMarkerRef = useRef(null)
   const pickTargetRef = useRef(pickTargetField)
   const onMapPickRef = useRef(onMapPick)
   const poiMarkersRef = useRef(new Map())
@@ -273,6 +274,27 @@ export default function MapContainer({ origin, destination, routes, activeRouteI
     }
     destMarkerRef.current.setLngLat(destination.coords).addTo(mapRef.current)
   }, [destination?.coords])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!livePosition) {
+      liveMarkerRef.current?.remove()
+      liveMarkerRef.current = null
+      return
+    }
+    if (!liveMarkerRef.current) {
+      const el = document.createElement('div')
+      el.style.width = '18px'
+      el.style.height = '18px'
+      el.style.borderRadius = '50%'
+      el.style.background = '#2563EB'
+      el.style.border = '3px solid white'
+      el.style.boxShadow = '0 0 0 6px rgba(37,99,235,0.25)'
+      liveMarkerRef.current = new mapboxgl.Marker({ element: el, anchor: 'center' })
+    }
+    liveMarkerRef.current.setLngLat(livePosition).addTo(map)
+    map?.easeTo({ center: livePosition, duration: 500 })
+  }, [livePosition])
 
   useEffect(() => {
     routesRef.current = routes

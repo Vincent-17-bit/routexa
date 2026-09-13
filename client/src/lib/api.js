@@ -47,6 +47,20 @@ export async function reverseGeocode(lng, lat) {
   }
 }
 
+async function nameUnnamedSegment(segment) {
+  const coords = segment.geometry?.coordinates
+  if (!coords?.length) return segment
+  const [lng, lat] = coords[Math.floor(coords.length / 2)]
+  try {
+    const result = await reverseGeocode(lng, lat)
+    const label = result.text.split(',')[0].trim()
+    if (label) return { ...segment, name: label }
+  } catch {
+    // keep the maneuver-instruction fallback name on failure
+  }
+  return segment
+}
+
 export async function fetchDirections(originCoords, destCoords, mode) {
   const profile = DIRECTIONS_PROFILE[mode] || 'driving-traffic'
   const coordStr = `${originCoords[0]},${originCoords[1]};${destCoords[0]},${destCoords[1]}`
@@ -56,20 +70,24 @@ export async function fetchDirections(originCoords, destCoords, mode) {
   const data = await res.json()
   if (!data.routes?.length) throw new Error('No route found')
 
-  return data.routes.map((route, i) => {
+  const routes = data.routes.map((route, i) => {
     const leg = route.legs[0]
     const distanceKm = route.distance / 1000
     const durationMin = route.duration / 60
     const speedKmh = route.duration > 0 ? distanceKm / (route.duration / 3600) : 0
     const segments = leg.steps
       .filter((s) => s.distance > 0)
-      .map((s) => ({
-        name: s.name || s.maneuver.instruction,
-        distanceKm: s.distance / 1000,
-        durationMin: s.duration / 60,
-        speedKmh: s.duration > 0 ? (s.distance / 1000) / (s.duration / 3600) : speedKmh,
-        geometry: s.geometry
-      }))
+      .map((s) => {
+        const hasName = Boolean(s.name && s.name.trim())
+        return {
+          name: hasName ? s.name : s.maneuver.instruction,
+          unnamed: !hasName,
+          distanceKm: s.distance / 1000,
+          durationMin: s.duration / 60,
+          speedKmh: s.duration > 0 ? (s.distance / 1000) / (s.duration / 3600) : speedKmh,
+          geometry: s.geometry
+        }
+      })
     return {
       id: `route-${i}`,
       via: leg.summary || 'Direct route',
@@ -80,4 +98,16 @@ export async function fetchDirections(originCoords, destCoords, mode) {
       segments
     }
   })
+
+  await Promise.all(
+    routes.flatMap((r) =>
+      r.segments.map(async (s, i) => {
+        if (!s.unnamed) return
+        r.segments[i] = await nameUnnamedSegment(s)
+      })
+    )
+  )
+  routes.forEach((r) => r.segments.forEach((s) => delete s.unnamed))
+
+  return routes
 }
