@@ -2,13 +2,18 @@ import { useEffect, useRef, useState } from 'react'
 import { useDebouncedCallback } from '../hooks/useDebounce'
 import { searchPlaces } from '../lib/api'
 
-export default function LocationInput({ value, placeholder, isTarget, onSelect, onFocus }) {
+export default function LocationInput({ value, placeholder, isTarget, onSelect, onFocus, proximity }) {
   const [query, setQuery] = useState(value.text)
   const [suggestions, setSuggestions] = useState([])
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [rect, setRect] = useState(null)
   const inputRef = useRef(null)
+  const proximityRef = useRef(proximity)
+
+  useEffect(() => {
+    proximityRef.current = proximity
+  }, [proximity])
 
   useEffect(() => {
     setQuery(value.text)
@@ -26,7 +31,7 @@ export default function LocationInput({ value, placeholder, isTarget, onSelect, 
     }
     setLoading(true)
     try {
-      const results = await searchPlaces(text)
+      const results = await searchPlaces(text, proximityRef.current)
       setSuggestions(results)
       positionDropdown()
       setOpen(true)

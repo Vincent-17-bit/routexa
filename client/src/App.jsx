@@ -28,6 +28,7 @@ export default function App() {
   const [routeDrawn, setRouteDrawn] = useState(false)
   const [routeLoading, setRouteLoading] = useState(false)
   const [routeError, setRouteError] = useState(null)
+  const [userLocation, setUserLocation] = useState(null)
 
   const requestIdRef = useRef(0)
 
@@ -35,6 +36,19 @@ export default function App() {
     checkHealth()
       .then(() => console.info('[routexa] server reachable'))
       .catch((err) => console.warn('[routexa] server unreachable:', err.message))
+  }, [])
+
+  useEffect(() => {
+    if (!navigator.geolocation) return
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const coords = [pos.coords.longitude, pos.coords.latitude]
+        setUserLocation(coords)
+        setMapFocus({ coords, ts: Date.now() })
+      },
+      () => {},
+      { timeout: 6000, maximumAge: 300000 }
+    )
   }, [])
 
   const computeRoute = useCallback(async (originCoords, destCoords, activeMode) => {
@@ -137,6 +151,7 @@ export default function App() {
         canShowRoute={canShowRoute}
         onShowRoute={handleShowRoute}
         routeLoading={routeLoading}
+        proximity={userLocation}
         compact={isMobile && sheetState === SHEET_STATE.IDLE}
       />
       {routeError && (!isMobile || sheetState >= SHEET_STATE.PREVIEW) && (

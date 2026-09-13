@@ -17,14 +17,32 @@ const ROUTE_STATUS_COLOR = ['match', ['get', 'status'], 'heavy', '#DC2626', 'mod
 
 function styleLightBasemap(map) {
   const setIfExists = (id, prop, value) => { if (map.getLayer(id)) map.setPaintProperty(id, prop, value) }
-  setIfExists('national-park', 'fill-color', '#CFE8D2')
-  setIfExists('landcover', 'fill-color', '#D9EDDB')
+  const setLayoutIfExists = (id, prop, value) => { if (map.getLayer(id)) map.setLayoutProperty(id, prop, value) }
+
+  setIfExists('water', 'fill-color', '#C6ECFF')
+  setIfExists('national-park', 'fill-color', '#D2F1D2')
+  setIfExists('landcover', 'fill-color', '#DCFCE7')
   setIfExists('landuse', 'fill-color', '#E4F2E6')
+
   setIfExists('road-motorway-trunk', 'line-color', '#C7CCD6')
-  setIfExists('road-primary', 'line-color', '#D3D7DE')
-  setIfExists('road-secondary-tertiary', 'line-color', '#E1E4E9')
-  setIfExists('road-street', 'line-color', '#F2F3F5')
-  setIfExists('road-minor', 'line-color', '#F2F3F5')
+  setIfExists('road-primary', 'line-color', '#D1D5DB')
+  setIfExists('road-secondary-tertiary', 'line-color', '#E2E8F0')
+  setIfExists('road-street', 'line-color', '#FFFFFF')
+  setIfExists('road-minor', 'line-color', '#FFFFFF')
+  setIfExists('road-local', 'line-color', '#FFFFFF')
+
+  for (const id of ['road-street', 'road-minor', 'road-local']) {
+    setLayoutIfExists(id, 'line-width', ['interpolate', ['linear'], ['zoom'], 12, 1, 16, 6])
+  }
+
+  for (const id of ['road-label', 'road-label-simple']) {
+    if (map.getLayer(id)) {
+      map.setLayoutProperty(id, 'text-size', 11)
+      map.setPaintProperty(id, 'text-color', '#5F6368')
+      map.setPaintProperty(id, 'text-halo-color', '#FFFFFF')
+      map.setPaintProperty(id, 'text-halo-width', 2)
+    }
+  }
 }
 
 function pinEl(color) {
@@ -45,18 +63,18 @@ function escapeHtml(str) {
 
 function poiPinEl(category, name) {
   const el = document.createElement('div')
-  el.style.width = '22px'
-  el.style.height = '28px'
+  el.style.width = '30px'
+  el.style.height = '38px'
   el.style.position = 'relative'
   el.style.cursor = 'pointer'
   el.innerHTML = `
-    <div style="position:absolute;bottom:32px;left:50%;transform:translateX(-50%);max-width:110px;">
+    <div style="position:absolute;bottom:40px;left:50%;transform:translateX(-50%);max-width:110px;">
       <span class="text-[10px] font-medium leading-tight px-1.5 py-0.5 rounded-md shadow-sm bg-white/95 dark:bg-slate-900/90 text-slate-800 dark:text-slate-100 border border-slate-200/70 dark:border-slate-700/70 block truncate">${escapeHtml(name)}</span>
     </div>
-    <svg width="22" height="28" viewBox="0 0 22 28" xmlns="http://www.w3.org/2000/svg" style="position:absolute;inset:0;">
+    <svg width="30" height="38" viewBox="0 0 22 28" xmlns="http://www.w3.org/2000/svg" style="position:absolute;inset:0;">
       <path d="M11 0C4.9 0 0 4.9 0 11c0 7.7 11 17 11 17s11-9.3 11-17C22 4.9 17.1 0 11 0z" fill="${category.color}" stroke="white" stroke-width="1"/>
     </svg>
-    <i class="fas ${category.fa}" style="position:absolute;top:4px;left:0;width:22px;text-align:center;color:#fff;font-size:9px;line-height:1;"></i>
+    <i class="fas ${category.fa}" style="position:absolute;top:6px;left:0;width:30px;text-align:center;color:#fff;font-size:11px;line-height:1;"></i>
   `
   return el
 }
@@ -162,7 +180,7 @@ export default function MapContainer({ origin, destination, routes, activeRouteI
 
     const setupStyleLayers = () => {
       loadedRef.current = false
-      map.setPaintProperty('background', 'background-color', prefersDarkQuery.matches ? '#0F172A' : '#EBF6EE')
+      map.setPaintProperty('background', 'background-color', prefersDarkQuery.matches ? '#0F172A' : '#F5F5F5')
       map.getCanvas().style.cursor = 'grab'
 
       map.addSource('route-alts', { type: 'geojson', data: EMPTY_FC })
@@ -200,6 +218,7 @@ export default function MapContainer({ origin, destination, routes, activeRouteI
 
     map.on('style.load', setupStyleLayers)
     map.on('idle', refreshPOIMarkers)
+    map.on('moveend', refreshPOIMarkers)
 
     const handleThemeChange = (e) => {
       map.setStyle(e.matches ? DARK_STYLE : LIGHT_STYLE)

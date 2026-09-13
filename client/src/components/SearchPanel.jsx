@@ -22,6 +22,7 @@ export default function SearchPanel({
   canShowRoute,
   onShowRoute,
   routeLoading,
+  proximity,
   compact
 }) {
   if (compact) {
@@ -45,6 +46,7 @@ export default function SearchPanel({
             isTarget={pickTargetField === 'origin'}
             onSelect={onSelectOrigin}
             onFocus={() => { onFocusInput(); onOriginFocus() }}
+            proximity={proximity}
           />
           <LocationInput
             value={destination}
@@ -52,6 +54,7 @@ export default function SearchPanel({
             isTarget={pickTargetField === 'destination'}
             onSelect={onSelectDestination}
             onFocus={() => { onFocusInput(); onDestinationFocus() }}
+            proximity={proximity}
           />
         </div>
 

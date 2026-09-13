@@ -11,16 +11,16 @@ export async function checkHealth() {
   return res.json()
 }
 
-export async function searchPlaces(query) {
+export async function searchPlaces(query, proximity) {
   if (!query.trim()) return []
   const params = new URLSearchParams({
     access_token: MAPBOX_TOKEN,
     autocomplete: 'true',
     fuzzyMatch: 'true',
     limit: '8',
-    types: SEARCH_TYPES,
-    proximity: '36.8219,-1.2921'
+    types: SEARCH_TYPES
   })
+  if (proximity) params.set('proximity', `${proximity[0]},${proximity[1]}`)
   const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?${params}`
   const res = await fetch(url)
   if (!res.ok) throw new Error(`Search failed: ${res.status}`)
@@ -41,7 +41,10 @@ export async function reverseGeocode(lng, lat) {
   if (!res.ok) throw new Error(`Reverse geocode failed: ${res.status}`)
   const data = await res.json()
   const feature = data.features?.[0]
-  return { text: feature?.place_name || `${lat.toFixed(5)}, ${lng.toFixed(5)}`, coords: [lng, lat] }
+  return {
+    text: feature?.place_name || `${lat.toFixed(5)}, ${lng.toFixed(5)}`,
+    coords: feature?.center || [lng, lat]
+  }
 }
 
 export async function fetchDirections(originCoords, destCoords, mode) {
