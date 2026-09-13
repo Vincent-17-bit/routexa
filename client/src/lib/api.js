@@ -64,7 +64,8 @@ export async function fetchDirections(originCoords, destCoords, mode) {
         name: s.name || s.maneuver.instruction,
         distanceKm: s.distance / 1000,
         durationMin: s.duration / 60,
-        speedKmh: s.duration > 0 ? (s.distance / 1000) / (s.duration / 3600) : speedKmh
+        speedKmh: s.duration > 0 ? (s.distance / 1000) / (s.duration / 3600) : speedKmh,
+        geometry: s.geometry
       }))
     return {
       id: `route-${i}`,

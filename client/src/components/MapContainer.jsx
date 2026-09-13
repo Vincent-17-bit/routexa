@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import mapboxgl from 'mapbox-gl'
 import { MAPBOX_TOKEN } from '../lib/api'
 import { KNOWN_MAKI_IDS, MAKI_TO_CATEGORY } from '../lib/poiCategories'
+import { resolveTrafficStatus } from '../lib/trafficStatus'
 
 mapboxgl.accessToken = MAPBOX_TOKEN
 
@@ -11,6 +12,20 @@ const MAX_POI_MARKERS = 150
 const LIGHT_STYLE = 'mapbox://styles/mapbox/light-v11'
 const DARK_STYLE = 'mapbox://styles/mapbox/dark-v11'
 const prefersDarkQuery = window.matchMedia('(prefers-color-scheme: dark)')
+
+const ROUTE_STATUS_COLOR = ['match', ['get', 'status'], 'heavy', '#DC2626', 'moderate', '#D97706', 'clear', '#059669', '#059669']
+
+function styleLightBasemap(map) {
+  const setIfExists = (id, prop, value) => { if (map.getLayer(id)) map.setPaintProperty(id, prop, value) }
+  setIfExists('national-park', 'fill-color', '#CFE8D2')
+  setIfExists('landcover', 'fill-color', '#D9EDDB')
+  setIfExists('landuse', 'fill-color', '#E4F2E6')
+  setIfExists('road-motorway-trunk', 'line-color', '#C7CCD6')
+  setIfExists('road-primary', 'line-color', '#D3D7DE')
+  setIfExists('road-secondary-tertiary', 'line-color', '#E1E4E9')
+  setIfExists('road-street', 'line-color', '#F2F3F5')
+  setIfExists('road-minor', 'line-color', '#F2F3F5')
+}
 
 function pinEl(color) {
   const el = document.createElement('div')
@@ -123,7 +138,21 @@ export default function MapContainer({ origin, destination, routes, activeRouteI
       const currentActiveId = activeRouteIdRef.current
       const active = currentRoutes.find((r) => r.id === currentActiveId)
       const alts = currentRoutes.filter((r) => r.id !== currentActiveId)
-      map.getSource('route-active')?.setData(active ? { type: 'Feature', geometry: active.geometry } : EMPTY_FC)
+
+      const activeSegments = (active?.segments || [])
+        .filter((s) => s.geometry)
+        .map((s) => ({
+          type: 'Feature',
+          properties: { status: resolveTrafficStatus(s.speedKmh) },
+          geometry: s.geometry
+        }))
+      map.getSource('route-active')?.setData(
+        activeSegments.length
+          ? { type: 'FeatureCollection', features: activeSegments }
+          : active
+            ? { type: 'FeatureCollection', features: [{ type: 'Feature', properties: { status: resolveTrafficStatus(active.speedKmh) }, geometry: active.geometry }] }
+            : EMPTY_FC
+      )
       map.getSource('route-alts')?.setData({
         type: 'FeatureCollection',
         features: alts.map((r) => ({ type: 'Feature', geometry: r.geometry }))
@@ -151,29 +180,12 @@ export default function MapContainer({ origin, destination, routes, activeRouteI
         type: 'line',
         source: 'route-active',
         layout: { 'line-cap': 'round', 'line-join': 'round' },
-        paint: { 'line-color': '#2563EB', 'line-width': 7 }
+        paint: { 'line-color': ROUTE_STATUS_COLOR, 'line-width': 7 }
       })
 
-      map.addSource('mapbox-traffic', { type: 'vector', url: 'mapbox://mapbox.mapbox-traffic-v1' })
-      map.addLayer({
-        id: 'traffic-layer',
-        type: 'line',
-        source: 'mapbox-traffic',
-        'source-layer': 'traffic',
-        layout: { 'line-cap': 'round', 'line-join': 'round' },
-        paint: {
-          'line-width': ['interpolate', ['linear'], ['zoom'], 10, 1.5, 16, 4],
-          'line-color': [
-            'match',
-            ['get', 'congestion'],
-            'low', '#059669',
-            'moderate', '#D97706',
-            'heavy', '#DC2626',
-            'severe', '#DC2626',
-            '#059669'
-          ]
-        }
-      })
+      if (!prefersDarkQuery.matches) {
+        styleLightBasemap(map)
+      }
 
       if (map.getLayer('poi-label')) {
         const existingFilter = map.getFilter('poi-label')
