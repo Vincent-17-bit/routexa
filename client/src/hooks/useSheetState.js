@@ -9,13 +9,13 @@ function heightForState(state) {
   return HEIGHT_PX[state]
 }
 
-export function useSheetState() {
+export function useSheetState(isMobile) {
   const [state, setState] = useState(SHEET_STATE.IDLE)
   const dragStartY = useRef(null)
 
   useEffect(() => {
-    document.documentElement.style.setProperty('--sheet-height', `${heightForState(state)}px`)
-  }, [state])
+    document.documentElement.style.setProperty('--sheet-height', isMobile ? `${heightForState(state)}px` : '0px')
+  }, [state, isMobile])
 
   const onTouchStart = useCallback((e) => {
     dragStartY.current = e.touches[0].clientY

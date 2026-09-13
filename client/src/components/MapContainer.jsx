@@ -13,7 +13,7 @@ const LIGHT_STYLE = 'mapbox://styles/mapbox/light-v11'
 const DARK_STYLE = 'mapbox://styles/mapbox/dark-v11'
 const prefersDarkQuery = window.matchMedia('(prefers-color-scheme: dark)')
 
-const ROUTE_STATUS_COLOR = ['match', ['get', 'status'], 'heavy', '#DC2626', 'moderate', '#D97706', 'clear', '#059669', '#059669']
+const ROUTE_STATUS_COLOR = ['match', ['get', 'status'], 'heavy', '#EA4335', 'moderate', '#FBBC05', 'clear', '#0F9D58', '#0F9D58']
 
 function styleLightBasemap(map) {
   const setIfExists = (id, prop, value) => { if (map.getLayer(id)) map.setPaintProperty(id, prop, value) }
@@ -37,7 +37,7 @@ function styleLightBasemap(map) {
 
   for (const id of ['road-label', 'road-label-simple']) {
     if (map.getLayer(id)) {
-      map.setLayoutProperty(id, 'text-size', 11)
+      map.setLayoutProperty(id, 'text-size', ['interpolate', ['linear'], ['zoom'], 11, 0, 13, 11])
       map.setPaintProperty(id, 'text-color', '#5F6368')
       map.setPaintProperty(id, 'text-halo-color', '#FFFFFF')
       map.setPaintProperty(id, 'text-halo-width', 2)
@@ -79,7 +79,7 @@ function poiPinEl(category, name) {
   return el
 }
 
-export default function MapContainer({ origin, destination, routes, activeRouteId, pickTargetField, onMapPick, mapFocus, livePosition }) {
+export default function MapContainer({ origin, destination, routes, activeRouteId, pickTargetField, onMapPick, mapFocus, livePosition, distanceFromRouteKm }) {
   const containerRef = useRef(null)
   const mapRef = useRef(null)
   const loadedRef = useRef(false)
@@ -210,6 +210,7 @@ export default function MapContainer({ origin, destination, routes, activeRouteI
         const existingFilter = map.getFilter('poi-label')
         const hideMatched = ['!', ['in', ['get', 'maki'], ['literal', KNOWN_MAKI_IDS]]]
         map.setFilter('poi-label', existingFilter ? ['all', existingFilter, hideMatched] : hideMatched)
+        map.setLayoutProperty('poi-label', 'text-size', ['interpolate', ['linear'], ['zoom'], 13, 0, 15, 11])
       }
 
       loadedRef.current = true
@@ -293,8 +294,10 @@ export default function MapContainer({ origin, destination, routes, activeRouteI
       liveMarkerRef.current = new mapboxgl.Marker({ element: el, anchor: 'center' })
     }
     liveMarkerRef.current.setLngLat(livePosition).addTo(map)
-    map?.easeTo({ center: livePosition, duration: 500 })
-  }, [livePosition])
+    if (distanceFromRouteKm == null || distanceFromRouteKm <= 3) {
+      map?.easeTo({ center: livePosition, duration: 500 })
+    }
+  }, [livePosition, distanceFromRouteKm])
 
   useEffect(() => {
     routesRef.current = routes
@@ -336,6 +339,22 @@ export default function MapContainer({ origin, destination, routes, activeRouteI
       {pickTargetField && (
         <div className="fixed top-16 left-1/2 -translate-x-1/2 z-40 px-4 py-2 rounded-full shadow-lg glass bg-surface-light dark:bg-surface-dark border border-card-light dark:border-card-dark text-sm font-medium">
           Tap the map to set {pickTargetField === 'origin' ? 'starting point' : 'destination'}
+        </div>
+      )}
+
+      {routes.length > 0 && (
+        <div
+          className="fixed left-4 z-40 flex items-center gap-2 px-3 py-2 rounded-lg shadow-lg glass bg-surface-light dark:bg-surface-dark border border-card-light dark:border-card-dark text-xs"
+          style={{ bottom: 'calc(var(--sheet-height, 52px) + 16px)' }}
+        >
+          <span className="font-medium text-text-secondary-light dark:text-text-secondary-dark">Live traffic</span>
+          <span className="italic text-text-secondary-light dark:text-text-secondary-dark">Fast</span>
+          <span className="flex items-center gap-0.5">
+            <span className="w-3 h-1.5 rounded-sm" style={{ background: '#0F9D58' }} />
+            <span className="w-3 h-1.5 rounded-sm" style={{ background: '#FBBC05' }} />
+            <span className="w-3 h-1.5 rounded-sm" style={{ background: '#EA4335' }} />
+          </span>
+          <span className="italic text-text-secondary-light dark:text-text-secondary-dark">Slow</span>
         </div>
       )}
 

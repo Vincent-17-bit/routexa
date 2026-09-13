@@ -17,7 +17,7 @@ const POLL_INTERVAL_MS = 45000
 export default function App() {
   useSystemTheme()
   const isMobile = !useMediaQuery('(min-width: 640px)')
-  const { state: sheetState, setState: setSheetState, reset: resetSheet, dragHandlers } = useSheetState()
+  const { state: sheetState, setState: setSheetState, reset: resetSheet, dragHandlers } = useSheetState(isMobile)
 
   const [origin, setOrigin] = useState(EMPTY_POINT)
   const [destination, setDestination] = useState(EMPTY_POINT)
@@ -31,6 +31,13 @@ export default function App() {
   const [routeLoading, setRouteLoading] = useState(false)
   const [routeError, setRouteError] = useState(null)
   const [userLocation, setUserLocation] = useState(null)
+  const [recentSearches, setRecentSearches] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('routexa:recent-searches') || '[]')
+    } catch {
+      return []
+    }
+  })
 
   const requestIdRef = useRef(0)
   const routesRef = useRef(routes)
@@ -81,21 +88,67 @@ export default function App() {
 
   const debouncedRecompute = useDebouncedCallback(computeRoute, 300)
 
+  const addRecentSearch = useCallback((result) => {
+    if (!result.text || !result.center) return
+    setRecentSearches((prev) => {
+      const entry = { id: `${result.text}-${result.center[0]}-${result.center[1]}`, text: result.text, context: result.context || '', center: result.center }
+      const next = [entry, ...prev.filter((r) => r.id !== entry.id)].slice(0, 3)
+      try {
+        localStorage.setItem('routexa:recent-searches', JSON.stringify(next))
+      } catch {
+        // storage unavailable (private mode etc); recents just won't persist
+      }
+      return next
+    })
+  }, [])
+
   const handleSelectOrigin = useCallback((result) => {
     setOrigin({ text: result.text, coords: result.center })
     setMapFocus({ coords: result.center, bbox: result.bbox, ts: Date.now() })
-  }, [])
+    addRecentSearch(result)
+  }, [addRecentSearch])
 
   const handleSelectDestination = useCallback((result) => {
     setDestination({ text: result.text, coords: result.center })
     setMapFocus({ coords: result.center, bbox: result.bbox, ts: Date.now() })
-  }, [])
+    addRecentSearch(result)
+  }, [addRecentSearch])
 
   const pickTargetField = useMemo(() => {
     if (focusedField === 'destination') return 'destination'
     if (focusedField === 'origin') return 'origin'
     return origin.coords ? 'destination' : 'origin'
   }, [focusedField, origin.coords])
+
+  const handleSelectRecent = useCallback((recent) => {
+    const result = { text: recent.text, center: recent.center, context: recent.context, bbox: null }
+    if (pickTargetField === 'destination') handleSelectDestination(result)
+    else handleSelectOrigin(result)
+  }, [pickTargetField, handleSelectOrigin, handleSelectDestination])
+
+  const handleUseCurrentLocation = useCallback((field) => {
+    const apply = (coords) => {
+      const result = { text: 'Your location', coords }
+      if (field === 'origin') setOrigin(result)
+      else setDestination(result)
+      setFocusedField(null)
+      setMapFocus({ coords, ts: Date.now() })
+    }
+    if (userLocation) {
+      apply(userLocation)
+      return
+    }
+    if (!navigator.geolocation) return
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const coords = [pos.coords.longitude, pos.coords.latitude]
+        setUserLocation(coords)
+        apply(coords)
+      },
+      () => {},
+      { timeout: 8000 }
+    )
+  }, [userLocation])
 
   const handleMapPick = useCallback(async (field, coords, presetName) => {
     const result = presetName
@@ -185,6 +238,9 @@ export default function App() {
         onShowRoute={handleShowRoute}
         routeLoading={routeLoading}
         proximity={userLocation}
+        onUseCurrentLocation={handleUseCurrentLocation}
+        recentSearches={recentSearches}
+        onSelectRecent={handleSelectRecent}
         compact={isMobile && sheetState === SHEET_STATE.IDLE}
       />
       {routeError && (!isMobile || sheetState >= SHEET_STATE.PREVIEW) && (
@@ -217,6 +273,11 @@ export default function App() {
       {nav.error && (
         <p className="px-4 pb-2 text-xs text-rose-600 dark:text-rose-400">{nav.error}</p>
       )}
+      {nav.isNavigating && nav.distanceFromRouteKm != null && nav.distanceFromRouteKm > 3 && (
+        <p className="px-4 pb-2 text-xs text-amber-600 dark:text-amber-400">
+          You're {nav.distanceFromRouteKm.toFixed(1)} km from the route — the route stays visible until you're closer.
+        </p>
+      )}
       {routeDrawn && (!isMobile || sheetState >= SHEET_STATE.PREVIEW) && (
         <RouteResults
           routes={routes}
@@ -241,6 +302,7 @@ export default function App() {
         onMapPick={handleMapPick}
         mapFocus={mapFocus}
         livePosition={nav.livePosition}
+        distanceFromRouteKm={nav.distanceFromRouteKm}
       />
       <TrafficToast message={toastMessage} />
 
@@ -255,7 +317,7 @@ export default function App() {
           >
             <span className="w-10 h-1 rounded-full bg-black/20 dark:bg-white/20" />
           </div>
-          <div className="flex-1 overflow-hidden">{panelContent}</div>
+          <div className="flex-1 overflow-y-auto">{panelContent}</div>
         </div>
       ) : (
         <div className="fixed top-16 left-4 z-40 w-96 max-w-[92vw] max-h-[calc(100vh-5rem)] overflow-y-auto rounded-2xl shadow-2xl glass bg-surface-light dark:bg-surface-dark border border-card-light dark:border-card-dark">

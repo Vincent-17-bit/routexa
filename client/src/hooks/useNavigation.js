@@ -8,6 +8,7 @@ export function useNavigation(activeRoute) {
   const [isNavigating, setIsNavigating] = useState(false)
   const [livePosition, setLivePosition] = useState(null)
   const [traveledKm, setTraveledKm] = useState(0)
+  const [distanceFromRouteKm, setDistanceFromRouteKm] = useState(null)
   const [error, setError] = useState(null)
   const watchIdRef = useRef(null)
   const routeLineRef = useRef(null)
@@ -32,7 +33,8 @@ export function useNavigation(activeRoute) {
         const line = routeLineRef.current
         if (!line) return
         try {
-          const snapped = nearestPointOnLine(line, point(coords))
+          const snapped = nearestPointOnLine(line, point(coords), { units: 'kilometers' })
+          setDistanceFromRouteKm(snapped.properties.dist)
           const startPt = point(line.geometry.coordinates[0])
           const sliced = lineSlice(startPt, snapped, line)
           setTraveledKm(length(sliced, { units: 'kilometers' }))
@@ -51,6 +53,7 @@ export function useNavigation(activeRoute) {
     setIsNavigating(false)
     setLivePosition(null)
     setTraveledKm(0)
+    setDistanceFromRouteKm(null)
     setError(null)
   }, [])
 
@@ -77,5 +80,5 @@ export function useNavigation(activeRoute) {
 
   const remainingKm = activeRoute ? Math.max(0, activeRoute.distanceKm - traveledKm) : 0
 
-  return { isNavigating, livePosition, traveledKm, remainingKm, error, start, stop, distanceAheadFor }
+  return { isNavigating, livePosition, traveledKm, remainingKm, distanceFromRouteKm, error, start, stop, distanceAheadFor }
 }

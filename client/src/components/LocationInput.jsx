@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useDebouncedCallback } from '../hooks/useDebounce'
 import { searchPlaces } from '../lib/api'
 
-export default function LocationInput({ value, placeholder, isTarget, onSelect, onFocus, proximity }) {
+export default function LocationInput({ value, placeholder, isTarget, onSelect, onFocus, proximity, variant }) {
   const [query, setQuery] = useState(value.text)
   const [suggestions, setSuggestions] = useState([])
   const [open, setOpen] = useState(false)
@@ -56,37 +56,45 @@ export default function LocationInput({ value, placeholder, isTarget, onSelect, 
   }
 
   return (
-    <div className="relative">
-      <input
-        ref={inputRef}
-        value={query}
-        onChange={handleChange}
-        onFocus={() => { onFocus(); if (suggestions.length) { positionDropdown(); setOpen(true) } }}
-        onBlur={() => setTimeout(() => setOpen(false), 150)}
-        placeholder={placeholder}
-        className={`w-full h-9 px-3 rounded-lg text-sm bg-black/5 dark:bg-white/10 border focus:outline-none focus:ring-2 focus:ring-accent-light dark:focus:ring-accent-dark ${
-          isTarget ? 'border-accent-light dark:border-accent-dark' : 'border-card-light dark:border-card-dark'
-        }`}
-      />
-      {open && rect && (loading || suggestions.length > 0) && (
-        <div
-          className="fixed z-[100] max-h-56 overflow-y-auto rounded-lg shadow-xl glass bg-surface-light dark:bg-surface-dark border border-card-light dark:border-card-dark"
-          style={{ top: rect.bottom + 4, left: rect.left, width: rect.width }}
-        >
-          {loading && <p className="px-3 py-2 text-xs text-text-secondary-light dark:text-text-secondary-dark">Searching…</p>}
-          {!loading && suggestions.map((s) => (
-            <button
-              key={s.id}
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => handleSelect(s)}
-              className="w-full text-left px-3 py-2 hover:bg-black/5 dark:hover:bg-white/10 border-b last:border-b-0 border-card-light dark:border-card-dark"
-            >
-              <p className="text-sm font-medium truncate">{s.text}</p>
-              {s.context && <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark truncate">{s.context}</p>}
-            </button>
-          ))}
-        </div>
+    <div className="relative flex items-center gap-2.5">
+      {variant === 'origin' ? (
+        <span className="shrink-0 w-2.5 h-2.5 rounded-full border-2 border-slate-400 dark:border-slate-500" />
+      ) : (
+        <i className="fas fa-location-dot shrink-0 text-rose-500 text-sm" />
       )}
+      <div className="relative flex-1">
+        <input
+          ref={inputRef}
+          value={query}
+          onChange={handleChange}
+          onFocus={() => { onFocus(); if (suggestions.length) { positionDropdown(); setOpen(true) } }}
+          onBlur={() => setTimeout(() => setOpen(false), 150)}
+          placeholder={placeholder}
+          className={`w-full h-9 pl-3 pr-8 rounded-lg text-sm bg-black/5 dark:bg-white/10 border focus:outline-none focus:ring-2 focus:ring-accent-light dark:focus:ring-accent-dark text-text-primary-light dark:text-text-primary-dark placeholder:text-text-secondary-light dark:placeholder:text-text-secondary-dark ${
+            isTarget ? 'border-accent-light dark:border-accent-dark' : 'border-card-light dark:border-card-dark'
+          }`}
+        />
+        <i className="fas fa-magnifying-glass absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-text-secondary-light dark:text-text-secondary-dark pointer-events-none" />
+        {open && rect && (loading || suggestions.length > 0) && (
+          <div
+            className="fixed z-[100] max-h-56 overflow-y-auto rounded-lg shadow-xl glass bg-surface-light dark:bg-surface-dark border border-card-light dark:border-card-dark"
+            style={{ top: rect.bottom + 4, left: rect.left, width: rect.width }}
+          >
+            {loading && <p className="px-3 py-2 text-xs text-text-secondary-light dark:text-text-secondary-dark">Searching…</p>}
+            {!loading && suggestions.map((s) => (
+              <button
+                key={s.id}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => handleSelect(s)}
+                className="w-full text-left px-3 py-2 hover:bg-black/5 dark:hover:bg-white/10 border-b last:border-b-0 border-card-light dark:border-card-dark"
+              >
+                <p className="text-sm font-medium truncate text-text-primary-light dark:text-text-primary-dark">{s.text}</p>
+                {s.context && <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark truncate">{s.context}</p>}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   )
 }

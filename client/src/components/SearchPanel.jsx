@@ -2,7 +2,7 @@ import LocationInput from './LocationInput'
 
 const MODES = [
   { id: 'car', label: 'Car', icon: 'fas fa-car' },
-  { id: 'transit', label: 'Transit / Bus', icon: 'fas fa-bus' },
+  { id: 'transit', label: 'Bus', icon: 'fas fa-bus' },
   { id: 'motorbike', label: 'Motorbike', icon: 'fas fa-motorcycle' }
 ]
 
@@ -23,6 +23,9 @@ export default function SearchPanel({
   onShowRoute,
   routeLoading,
   proximity,
+  onUseCurrentLocation,
+  recentSearches,
+  onSelectRecent,
   compact
 }) {
   if (compact) {
@@ -37,69 +40,113 @@ export default function SearchPanel({
   }
 
   return (
-    <div className="px-4 pt-1 pb-3 flex flex-col gap-3">
-      <div className="flex items-center gap-2">
-        <div className="flex-1 flex flex-col gap-2">
-          <LocationInput
-            value={origin}
-            placeholder="Starting point"
-            isTarget={pickTargetField === 'origin'}
-            onSelect={onSelectOrigin}
-            onFocus={() => { onFocusInput(); onOriginFocus() }}
-            proximity={proximity}
-          />
-          <LocationInput
-            value={destination}
-            placeholder="Destination"
-            isTarget={pickTargetField === 'destination'}
-            onSelect={onSelectDestination}
-            onFocus={() => { onFocusInput(); onDestinationFocus() }}
-            proximity={proximity}
-          />
-        </div>
-
-        <button
-          onClick={onReverse}
-          title="Reverse starting point and destination"
-          className="h-9 w-9 flex items-center justify-center rounded-lg border border-card-light dark:border-card-dark hover:bg-black/5 dark:hover:bg-white/10 shrink-0"
-        >
-          ⇅
-        </button>
-
-        <button
-          onClick={onCancel}
-          title="Clear route"
-          className="h-9 w-9 flex items-center justify-center rounded-lg border border-card-light dark:border-card-dark hover:bg-black/5 dark:hover:bg-white/10 shrink-0"
-        >
-          ✕
-        </button>
-      </div>
-
-      <div className="flex gap-2">
+    <div className="flex flex-col">
+      <div className="px-4 pt-3 flex items-center gap-2">
         {MODES.map((m) => (
           <button
             key={m.id}
             title={m.label}
             onClick={() => onModeChange(m.id)}
-            className={`flex-1 h-9 rounded-lg text-base border transition-colors ${
+            className={`h-9 w-9 rounded-full flex items-center justify-center text-sm transition-colors ${
               mode === m.id
-                ? 'bg-accent-light/10 dark:bg-accent-dark/10 border-accent-light dark:border-accent-dark text-accent-light dark:text-accent-dark'
-                : 'border-card-light dark:border-card-dark text-text-secondary-light dark:text-text-secondary-dark hover:bg-black/5 dark:hover:bg-white/10'
+                ? 'bg-accent-light dark:bg-accent-dark text-white'
+                : 'text-text-secondary-light dark:text-text-secondary-dark hover:bg-black/5 dark:hover:bg-white/10'
             }`}
           >
             <i className={m.icon} aria-hidden="true" />
             <span className="sr-only">{m.label}</span>
           </button>
         ))}
+        <div className="flex-1" />
+        <button
+          onClick={onCancel}
+          title="Clear route"
+          className="h-8 w-8 rounded-full flex items-center justify-center text-text-secondary-light dark:text-text-secondary-dark hover:bg-black/5 dark:hover:bg-white/10"
+        >
+          <i className="fas fa-xmark" aria-hidden="true" />
+        </button>
       </div>
 
+      <div className="h-px bg-card-light dark:bg-card-dark mt-3" />
+
+      <div className="px-4 py-3 relative">
+        <div className="absolute left-[21px] top-[26px] bottom-[26px] flex flex-col items-center justify-between py-1 pointer-events-none">
+          <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
+          <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
+          <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
+        </div>
+
+        <div className="flex flex-col gap-2 pr-8">
+          <LocationInput
+            value={origin}
+            placeholder="Choose starting point, or click on the map"
+            isTarget={pickTargetField === 'origin'}
+            onSelect={onSelectOrigin}
+            onFocus={() => { onFocusInput(); onOriginFocus() }}
+            proximity={proximity}
+            variant="origin"
+          />
+          <LocationInput
+            value={destination}
+            placeholder="Choose destination..."
+            isTarget={pickTargetField === 'destination'}
+            onSelect={onSelectDestination}
+            onFocus={() => { onFocusInput(); onDestinationFocus() }}
+            proximity={proximity}
+            variant="destination"
+          />
+        </div>
+
+        <button
+          onClick={onReverse}
+          title="Reverse starting point and destination"
+          className="absolute right-4 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full flex items-center justify-center shadow-sm border border-card-light dark:border-card-dark bg-surface-light dark:bg-surface-dark hover:bg-black/5 dark:hover:bg-white/10"
+        >
+          <i className="fas fa-arrow-down-up-across-line text-xs text-text-secondary-light dark:text-text-secondary-dark" aria-hidden="true" />
+        </button>
+      </div>
+
+      <div className="h-px bg-card-light dark:bg-card-dark" />
+
       <button
-        onClick={onShowRoute}
-        disabled={!canShowRoute || routeLoading}
-        className="h-10 rounded-lg text-sm font-semibold bg-accent-light dark:bg-accent-dark text-white disabled:opacity-40 disabled:cursor-not-allowed hover:brightness-110 transition"
+        onClick={() => onUseCurrentLocation(pickTargetField)}
+        className="px-4 py-2.5 flex items-center gap-3 hover:bg-black/5 dark:hover:bg-white/10 text-left"
       >
-        {routeLoading ? 'Finding route…' : 'Show route'}
+        <span className="h-6 w-6 rounded-full flex items-center justify-center shrink-0">
+          <i className="fas fa-location-crosshairs text-accent-light dark:text-accent-dark" aria-hidden="true" />
+        </span>
+        <span className="text-sm font-medium">Your location</span>
       </button>
+
+      {recentSearches?.length > 0 && (
+        <div className="pb-2">
+          {recentSearches.map((r) => (
+            <button
+              key={r.id}
+              onClick={() => onSelectRecent(r)}
+              className="w-full px-4 py-2.5 flex items-center gap-3 hover:bg-black/5 dark:hover:bg-white/10 text-left"
+            >
+              <span className="h-6 w-6 rounded-full flex items-center justify-center shrink-0">
+                <i className="fas fa-clock-rotate-left text-text-secondary-light dark:text-text-secondary-dark" aria-hidden="true" />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-medium truncate">{r.text}</span>
+                {r.context && <span className="block text-xs text-text-secondary-light dark:text-text-secondary-dark truncate">{r.context}</span>}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div className="px-4 pb-3 pt-1">
+        <button
+          onClick={onShowRoute}
+          disabled={!canShowRoute || routeLoading}
+          className="w-full h-10 rounded-lg text-sm font-semibold bg-accent-light dark:bg-accent-dark text-white disabled:opacity-40 disabled:cursor-not-allowed hover:brightness-110 transition"
+        >
+          {routeLoading ? 'Finding route…' : 'Show route'}
+        </button>
+      </div>
     </div>
   )
 }
