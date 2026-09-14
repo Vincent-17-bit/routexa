@@ -37,14 +37,11 @@ function RecentRow({ recent, onSelect, onRemove }) {
 
   return (
     <div
-      className="relative overflow-hidden"
+      className="relative overflow-hidden touch-pan-y"
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
     >
-      <div className="absolute inset-y-0 right-0 flex items-center pr-4 bg-rose-500 text-white text-xs font-medium">
-        Remove
-      </div>
       <div
         className="relative flex items-center bg-surface-light dark:bg-surface-dark"
         style={{ transform: `translateX(${dragX}px)`, transition: dragX === 0 ? 'transform 0.2s ease' : 'none' }}
@@ -93,20 +90,8 @@ export default function SearchPanel({
   onUseCurrentLocation,
   recentSearches,
   onSelectRecent,
-  onRemoveRecent,
-  compact
+  onRemoveRecent
 }) {
-  if (compact) {
-    return (
-      <button
-        onClick={onFocusInput}
-        className="w-full h-full flex items-center px-4 text-sm text-text-secondary-light dark:text-text-secondary-dark text-left"
-      >
-        {origin.text || destination.text ? `${origin.text || '...'} → ${destination.text || '...'}` : 'Where to?'}
-      </button>
-    )
-  }
-
   return (
     <div className="flex flex-col">
       <div className="px-4 pt-3 flex items-center gap-2">

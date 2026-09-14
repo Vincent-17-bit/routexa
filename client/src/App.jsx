@@ -4,7 +4,7 @@ import MapContainer from './components/MapContainer'
 import SearchPanel from './components/SearchPanel'
 import RouteResults from './components/RouteResults'
 import { TrafficToast, useTrafficWatcher } from './components/TrafficToast'
-import { useSheetState, SHEET_STATE } from './hooks/useSheetState'
+import { useSheetState } from './hooks/useSheetState'
 import { useMediaQuery } from './hooks/useMediaQuery'
 import { useDebouncedCallback } from './hooks/useDebounce'
 import { useSystemTheme } from './hooks/useSystemTheme'
@@ -17,7 +17,7 @@ const POLL_INTERVAL_MS = 45000
 export default function App() {
   useSystemTheme()
   const isMobile = !useMediaQuery('(min-width: 640px)')
-  const { state: sheetState, setState: setSheetState, reset: resetSheet, dragHandlers } = useSheetState(isMobile)
+  const { height: sheetHeight, isCollapsed, collapse, expand, ensureVisible, reset: resetSheet, dragHandlers } = useSheetState(isMobile)
 
   const [origin, setOrigin] = useState(EMPTY_POINT)
   const [destination, setDestination] = useState(EMPTY_POINT)
@@ -31,6 +31,7 @@ export default function App() {
   const [routeLoading, setRouteLoading] = useState(false)
   const [routeError, setRouteError] = useState(null)
   const [userLocation, setUserLocation] = useState(null)
+  const [locationError, setLocationError] = useState(null)
   const [recentSearches, setRecentSearches] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem('routexa:recent-searches') || '[]')
@@ -139,6 +140,7 @@ export default function App() {
   }, [])
 
   const handleUseCurrentLocation = useCallback((field) => {
+    setLocationError(null)
     const apply = (coords) => {
       const result = { text: 'Your location', coords }
       if (field === 'origin') setOrigin(result)
@@ -150,15 +152,24 @@ export default function App() {
       apply(userLocation)
       return
     }
-    if (!navigator.geolocation) return
+    if (!navigator.geolocation) {
+      setLocationError('Location is not available on this device or browser.')
+      return
+    }
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const coords = [pos.coords.longitude, pos.coords.latitude]
         setUserLocation(coords)
         apply(coords)
       },
-      () => {},
-      { timeout: 8000 }
+      (err) => {
+        setLocationError(
+          err.code === err.PERMISSION_DENIED
+            ? 'Location access was denied. Allow location access in your browser settings and try again.'
+            : 'Could not get your current location. Try again.'
+        )
+      },
+      { timeout: 8000, enableHighAccuracy: true }
     )
   }, [userLocation])
 
@@ -190,8 +201,8 @@ export default function App() {
 
   const handleShowRoute = useCallback(async () => {
     await computeRoute(origin.coords, destination.coords, mode)
-    setSheetState((s) => Math.max(s, SHEET_STATE.PREVIEW))
-  }, [origin.coords, destination.coords, mode, computeRoute, setSheetState])
+    ensureVisible()
+  }, [origin.coords, destination.coords, mode, computeRoute, ensureVisible])
 
   const handleCancel = useCallback(() => {
     requestIdRef.current++
@@ -207,8 +218,8 @@ export default function App() {
   }, [resetSheet, nav])
 
   const handleFocusInput = useCallback(() => {
-    setSheetState((s) => Math.max(s, SHEET_STATE.PREVIEW))
-  }, [setSheetState])
+    ensureVisible()
+  }, [ensureVisible])
 
   const canShowRoute = Boolean(origin.coords && destination.coords) && !routeLoading
 
@@ -254,12 +265,14 @@ export default function App() {
         recentSearches={recentSearches}
         onSelectRecent={handleSelectRecent}
         onRemoveRecent={handleRemoveRecent}
-        compact={isMobile && sheetState === SHEET_STATE.IDLE}
       />
-      {routeError && (!isMobile || sheetState >= SHEET_STATE.PREVIEW) && (
+      {locationError && (
+        <p className="px-4 pb-2 text-xs text-rose-600 dark:text-rose-400">{locationError}</p>
+      )}
+      {routeError && (
         <p className="px-4 pb-2 text-xs text-rose-600 dark:text-rose-400">{routeError}</p>
       )}
-      {routeDrawn && (!isMobile || sheetState >= SHEET_STATE.PREVIEW) && (
+      {routeDrawn && (
         <div className="px-4 pb-2 flex items-center gap-2">
           {nav.isNavigating ? (
             <button
@@ -291,12 +304,11 @@ export default function App() {
           You're {nav.distanceFromRouteKm.toFixed(1)} km from the route — the route stays visible until you're closer.
         </p>
       )}
-      {routeDrawn && (!isMobile || sheetState >= SHEET_STATE.PREVIEW) && (
+      {routeDrawn && (
         <RouteResults
           routes={routes}
           activeRouteId={activeRouteId}
           onSelectRoute={setActiveRouteId}
-          sheetState={isMobile ? sheetState : SHEET_STATE.FULL}
           feed={feed}
         />
       )}
@@ -321,14 +333,23 @@ export default function App() {
 
       {isMobile ? (
         <div
-          className="fixed bottom-0 left-0 right-0 z-40 bg-white/85 dark:bg-slate-900/85 backdrop-blur-md rounded-t-2xl shadow-2xl transition-all duration-300 ease-in-out overflow-hidden flex flex-col"
+          className="fixed bottom-0 left-0 right-0 z-40 bg-white/85 dark:bg-slate-900/85 backdrop-blur-md rounded-t-2xl shadow-2xl flex flex-col"
           style={{ height: 'var(--sheet-height)' }}
         >
-          <div
-            className="shrink-0 flex items-center justify-center h-[22px] cursor-grab active:cursor-grabbing"
-            {...dragHandlers}
-          >
-            <span className="w-10 h-1 rounded-full bg-black/20 dark:bg-white/20" />
+          <div className="relative shrink-0 h-8">
+            <div
+              className="absolute inset-0 flex items-center justify-center cursor-grab active:cursor-grabbing touch-none"
+              {...dragHandlers}
+            >
+              <span className="w-10 h-1 rounded-full bg-black/20 dark:bg-white/20" />
+            </div>
+            <button
+              onClick={() => (isCollapsed ? expand() : collapse())}
+              title={isCollapsed ? 'Expand' : 'Collapse'}
+              className="absolute right-3 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full flex items-center justify-center text-text-secondary-light dark:text-text-secondary-dark hover:bg-black/5 dark:hover:bg-white/10"
+            >
+              <i className={`fas ${isCollapsed ? 'fa-chevron-up' : 'fa-chevron-down'} text-xs`} aria-hidden="true" />
+            </button>
           </div>
           <div className="flex-1 overflow-y-auto">{panelContent}</div>
         </div>
