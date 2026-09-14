@@ -126,6 +126,18 @@ export default function App() {
     else handleSelectOrigin(result)
   }, [pickTargetField, handleSelectOrigin, handleSelectDestination])
 
+  const handleRemoveRecent = useCallback((id) => {
+    setRecentSearches((prev) => {
+      const next = prev.filter((r) => r.id !== id)
+      try {
+        localStorage.setItem('routexa:recent-searches', JSON.stringify(next))
+      } catch {
+        // storage unavailable (private mode etc); change just won't persist
+      }
+      return next
+    })
+  }, [])
+
   const handleUseCurrentLocation = useCallback((field) => {
     const apply = (coords) => {
       const result = { text: 'Your location', coords }
@@ -241,6 +253,7 @@ export default function App() {
         onUseCurrentLocation={handleUseCurrentLocation}
         recentSearches={recentSearches}
         onSelectRecent={handleSelectRecent}
+        onRemoveRecent={handleRemoveRecent}
         compact={isMobile && sheetState === SHEET_STATE.IDLE}
       />
       {routeError && (!isMobile || sheetState >= SHEET_STATE.PREVIEW) && (

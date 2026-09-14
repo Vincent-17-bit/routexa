@@ -1,3 +1,4 @@
+import { useRef, useState } from 'react'
 import LocationInput from './LocationInput'
 
 const MODES = [
@@ -5,6 +6,72 @@ const MODES = [
   { id: 'transit', label: 'Bus', icon: 'fas fa-bus' },
   { id: 'motorbike', label: 'Motorbike', icon: 'fas fa-motorcycle' }
 ]
+
+const SWIPE_DISMISS_PX = 70
+
+function RecentRow({ recent, onSelect, onRemove }) {
+  const [dragX, setDragX] = useState(0)
+  const startXRef = useRef(null)
+  const draggingRef = useRef(false)
+
+  const onTouchStart = (e) => {
+    startXRef.current = e.touches[0].clientX
+    draggingRef.current = true
+  }
+
+  const onTouchMove = (e) => {
+    if (!draggingRef.current || startXRef.current === null) return
+    const delta = e.touches[0].clientX - startXRef.current
+    if (delta < 0) setDragX(delta)
+  }
+
+  const onTouchEnd = () => {
+    draggingRef.current = false
+    startXRef.current = null
+    if (dragX < -SWIPE_DISMISS_PX) {
+      onRemove(recent.id)
+    } else {
+      setDragX(0)
+    }
+  }
+
+  return (
+    <div
+      className="relative overflow-hidden"
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+    >
+      <div className="absolute inset-y-0 right-0 flex items-center pr-4 bg-rose-500 text-white text-xs font-medium">
+        Remove
+      </div>
+      <div
+        className="relative flex items-center bg-surface-light dark:bg-surface-dark"
+        style={{ transform: `translateX(${dragX}px)`, transition: dragX === 0 ? 'transform 0.2s ease' : 'none' }}
+      >
+        <button
+          onClick={() => onSelect(recent)}
+          className="flex-1 min-w-0 px-4 py-2.5 flex items-center gap-3 hover:bg-black/5 dark:hover:bg-white/10 text-left"
+        >
+          <span className="h-6 w-6 rounded-full flex items-center justify-center shrink-0">
+            <i className="fas fa-clock-rotate-left text-text-secondary-light dark:text-text-secondary-dark" aria-hidden="true" />
+          </span>
+          <span className="min-w-0">
+            <span className="block text-sm font-medium truncate">{recent.text}</span>
+            {recent.context && <span className="block text-xs text-text-secondary-light dark:text-text-secondary-dark truncate">{recent.context}</span>}
+          </span>
+        </button>
+        <button
+          onClick={() => onRemove(recent.id)}
+          title="Remove from recent searches"
+          className="h-8 w-8 mr-2 rounded-full flex items-center justify-center shrink-0 text-text-secondary-light dark:text-text-secondary-dark hover:bg-black/10 dark:hover:bg-white/10"
+        >
+          <i className="fas fa-xmark text-xs" aria-hidden="true" />
+        </button>
+      </div>
+    </div>
+  )
+}
 
 export default function SearchPanel({
   origin,
@@ -26,6 +93,7 @@ export default function SearchPanel({
   onUseCurrentLocation,
   recentSearches,
   onSelectRecent,
+  onRemoveRecent,
   compact
 }) {
   if (compact) {
@@ -85,6 +153,7 @@ export default function SearchPanel({
             onFocus={() => { onFocusInput(); onOriginFocus() }}
             proximity={proximity}
             variant="origin"
+            recentSearches={recentSearches}
           />
           <LocationInput
             value={destination}
@@ -94,6 +163,7 @@ export default function SearchPanel({
             onFocus={() => { onFocusInput(); onDestinationFocus() }}
             proximity={proximity}
             variant="destination"
+            recentSearches={recentSearches}
           />
         </div>
 
@@ -119,21 +189,9 @@ export default function SearchPanel({
       </button>
 
       {recentSearches?.length > 0 && (
-        <div className="pb-2">
+        <div className="pb-2 flex flex-col gap-px">
           {recentSearches.map((r) => (
-            <button
-              key={r.id}
-              onClick={() => onSelectRecent(r)}
-              className="w-full px-4 py-2.5 flex items-center gap-3 hover:bg-black/5 dark:hover:bg-white/10 text-left"
-            >
-              <span className="h-6 w-6 rounded-full flex items-center justify-center shrink-0">
-                <i className="fas fa-clock-rotate-left text-text-secondary-light dark:text-text-secondary-dark" aria-hidden="true" />
-              </span>
-              <span className="min-w-0">
-                <span className="block text-sm font-medium truncate">{r.text}</span>
-                {r.context && <span className="block text-xs text-text-secondary-light dark:text-text-secondary-dark truncate">{r.context}</span>}
-              </span>
-            </button>
+            <RecentRow key={r.id} recent={r} onSelect={onSelectRecent} onRemove={onRemoveRecent} />
           ))}
         </div>
       )}

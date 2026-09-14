@@ -37,7 +37,7 @@ function styleLightBasemap(map) {
 
   for (const id of ['road-label', 'road-label-simple']) {
     if (map.getLayer(id)) {
-      map.setLayoutProperty(id, 'text-size', ['interpolate', ['linear'], ['zoom'], 11, 0, 13, 11])
+      map.setLayoutProperty(id, 'text-size', 11)
       map.setPaintProperty(id, 'text-color', '#5F6368')
       map.setPaintProperty(id, 'text-halo-color', '#FFFFFF')
       map.setPaintProperty(id, 'text-halo-width', 2)
@@ -210,7 +210,6 @@ export default function MapContainer({ origin, destination, routes, activeRouteI
         const existingFilter = map.getFilter('poi-label')
         const hideMatched = ['!', ['in', ['get', 'maki'], ['literal', KNOWN_MAKI_IDS]]]
         map.setFilter('poi-label', existingFilter ? ['all', existingFilter, hideMatched] : hideMatched)
-        map.setLayoutProperty('poi-label', 'text-size', ['interpolate', ['linear'], ['zoom'], 13, 0, 15, 11])
       }
 
       loadedRef.current = true
