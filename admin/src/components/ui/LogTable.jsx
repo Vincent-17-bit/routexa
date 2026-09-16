@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useLogFilters } from '../../hooks/useLogFilters'
 import { useLogData } from '../../hooks/useLogData'
 import { softDeleteLog, restoreLog, getDeletedLogs, exportLogsUrl } from '../../lib/api'
@@ -21,13 +21,15 @@ export default function LogTable({ type, columns, renderMobileRow }) {
   const [page, setPage] = useState(0)
   const [showDeleted, setShowDeleted] = useState(false)
   const [deletedRows, setDeletedRows] = useState([])
-  const { rows, loading } = useLogData(type, filters, page)
+  const { rows, loading, refresh } = useLogData(type, filters, page)
 
-  const reload = () => setPage((p) => p)
+  useEffect(() => {
+    setPage(0)
+  }, [filters.range, filters.browser.join(','), filters.device.join(',')])
 
   async function handleDelete(id) {
     await softDeleteLog(type, id)
-    setPage((p) => p)
+    refresh()
   }
 
   async function openDeleted() {

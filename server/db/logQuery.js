@@ -1,9 +1,9 @@
 import { db } from './client.js'
 
 const TABLES = {
-  login: { table: 'login_logs', sortable: ['timestamp', 'geo_city', 'success', 'device_id'] },
-  search: { table: 'search_logs', sortable: ['timestamp', 'query_text', 'mode', 'device_id'] },
-  route: { table: 'route_logs', sortable: ['timestamp', 'origin', 'destination', 'distance_km', 'device_id'] }
+  login: { table: 'login_logs', sortable: ['timestamp', 'geo_city', 'success', 'device_id', 'deleted_at'] },
+  search: { table: 'search_logs', sortable: ['timestamp', 'query_text', 'mode', 'device_id', 'deleted_at'] },
+  route: { table: 'route_logs', sortable: ['timestamp', 'origin', 'destination', 'distance_km', 'device_id', 'deleted_at'] }
 }
 
 const RANGE_CLAUSE = {

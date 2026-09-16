@@ -5,6 +5,8 @@ export function useLogData(type, filters, page, pageSize = 25) {
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [refreshTick, setRefreshTick] = useState(0)
+  const refresh = () => setRefreshTick((t) => t + 1)
 
   useEffect(() => {
     let alive = true
@@ -20,7 +22,7 @@ export function useLogData(type, filters, page, pageSize = 25) {
     return () => {
       alive = false
     }
-  }, [type, filters.range, filters.browser.join(','), filters.device.join(','), filters.sort, filters.dir, page, pageSize])
+  }, [type, filters.range, filters.browser.join(','), filters.device.join(','), filters.sort, filters.dir, page, pageSize, refreshTick])
 
-  return { rows, loading, error }
+  return { rows, loading, error, refresh }
 }

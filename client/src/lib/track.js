@@ -54,7 +54,12 @@ function post(path, body) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body)
-  }).catch(() => {})
+  })
+    .then((res) => {
+      if (!res.ok) console.warn(`[routexa] tracking ${path} failed: ${res.status}`)
+      return res
+    })
+    .catch((err) => console.warn(`[routexa] tracking ${path} unreachable:`, err.message))
 }
 
 export function deviceIdentity() {
