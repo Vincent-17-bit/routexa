@@ -1,13 +1,23 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import FilterChecklists from './FilterChecklists'
 import BottomSheet from './BottomSheet'
 
 export default function FilterPanel({ filters, toggleBrowser, toggleDevice, resetAll }) {
   const [open, setOpen] = useState(false)
+  const rootRef = useRef(null)
   const activeCount = filters.browser.length + filters.device.length
 
+  useEffect(() => {
+    if (!open) return
+    function onClickOutside(e) {
+      if (rootRef.current && !rootRef.current.contains(e.target)) setOpen(false)
+    }
+    document.addEventListener('mousedown', onClickOutside)
+    return () => document.removeEventListener('mousedown', onClickOutside)
+  }, [open])
+
   return (
-    <div className="relative">
+    <div className="relative" ref={rootRef}>
       <button
         onClick={() => setOpen(true)}
         className="rounded-lg border-[0.5px] border-border bg-nested px-3 py-1.5 text-xs text-text-secondary"
@@ -17,6 +27,12 @@ export default function FilterPanel({ filters, toggleBrowser, toggleDevice, rese
 
       {open && (
         <div className="hidden md:block absolute right-0 top-full z-40 mt-2 w-64 rounded-xl border-[0.5px] border-border bg-surface p-4 shadow-none">
+          <div className="mb-3 flex items-center justify-between">
+            <span className="text-xs text-text-secondary">Filters</span>
+            <button onClick={() => setOpen(false)} className="text-text-muted hover:text-danger" aria-label="close">
+              ×
+            </button>
+          </div>
           <FilterChecklists
             browser={filters.browser}
             device={filters.device}
