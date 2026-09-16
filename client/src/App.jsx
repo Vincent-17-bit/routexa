@@ -10,6 +10,7 @@ import { useDebouncedCallback } from './hooks/useDebounce'
 import { useSystemTheme } from './hooks/useSystemTheme'
 import { useNavigation } from './hooks/useNavigation'
 import { checkHealth, reverseGeocode, fetchDirections } from './lib/api'
+import { trackDevice, trackLogin, trackRoute, markOffline } from './lib/track'
 
 const EMPTY_POINT = { text: '', coords: null }
 const POLL_INTERVAL_MS = 45000
@@ -56,6 +57,12 @@ export default function App() {
   }, [])
 
   useEffect(() => {
+    trackDevice().then(trackLogin)
+    window.addEventListener('pagehide', markOffline)
+    return () => window.removeEventListener('pagehide', markOffline)
+  }, [])
+
+  useEffect(() => {
     if (!navigator.geolocation) return
     navigator.geolocation.getCurrentPosition(
       (pos) => {
@@ -79,6 +86,14 @@ export default function App() {
       setRoutes(results)
       setActiveRouteId(results[0].id)
       setRouteDrawn(true)
+      trackRoute({
+        origin: `${originCoords[0]},${originCoords[1]}`,
+        destination: `${destCoords[0]},${destCoords[1]}`,
+        mode: activeMode,
+        distanceKm: results[0].distanceKm,
+        etaMin: results[0].durationMin,
+        tollsDetected: false
+      })
     } catch (err) {
       if (requestId !== requestIdRef.current) return
       setRouteError(err.message)

@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useDebouncedCallback } from '../hooks/useDebounce'
 import { searchPlaces } from '../lib/api'
+import { trackSearch } from '../lib/track'
 
-export default function LocationInput({ value, placeholder, isTarget, onSelect, onFocus, proximity, variant, recentSearches }) {
+export default function LocationInput({ value, placeholder, isTarget, onSelect, onFocus, proximity, variant, recentSearches, mode }) {
   const [query, setQuery] = useState(value.text)
   const [suggestions, setSuggestions] = useState([])
   const [recentMatches, setRecentMatches] = useState([])
@@ -53,6 +54,7 @@ export default function LocationInput({ value, placeholder, isTarget, onSelect, 
       setSuggestions(results)
       positionDropdown()
       setOpen(true)
+      trackSearch(text, { mode, resultCount: results.length })
     } catch {
       setSuggestions([])
     } finally {

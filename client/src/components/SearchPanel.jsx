@@ -139,6 +139,7 @@ export default function SearchPanel({
             proximity={proximity}
             variant="origin"
             recentSearches={recentSearches}
+            mode={mode}
           />
           <LocationInput
             value={destination}
@@ -149,6 +150,7 @@ export default function SearchPanel({
             proximity={proximity}
             variant="destination"
             recentSearches={recentSearches}
+            mode={mode}
           />
         </div>
 

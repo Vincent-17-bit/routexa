@@ -6,13 +6,15 @@ import StatusPill from '../components/ui/StatusPill'
 
 export default function Overview() {
   const [data, setData] = useState(null)
+  const [error, setError] = useState(null)
   const [recent, setRecent] = useState([])
 
   useEffect(() => {
-    getOverview().then(setData)
-    getLogs('login', { range: 'all', sort: 'timestamp', dir: 'desc', pageSize: 8 }).then((r) => setRecent(r.rows))
+    getOverview().then(setData).catch((err) => setError(err.message))
+    getLogs('login', { range: 'all', sort: 'timestamp', dir: 'desc', pageSize: 8 }).then((r) => setRecent(r.rows)).catch(() => {})
   }, [])
 
+  if (error) return <div className="text-sm text-danger">Couldn't reach the server: {error}</div>
   if (!data) return <div className="text-sm text-text-muted">Loading…</div>
 
   async function handleDelete(id) {
