@@ -20,7 +20,7 @@ export default function Devices() {
           className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-nested"
         >
           <div>
-            <div className="text-sm text-text-primary">{d.device_id}</div>
+            <div className="text-sm text-text-primary">{d.device_model || d.device_id}</div>
             <div className="text-xs text-text-secondary">{d.device_type} · {d.os} · {d.browser}</div>
           </div>
           <StatusPill tone={d.is_currently_online ? 'success' : 'neutral'}>

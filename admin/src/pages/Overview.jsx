@@ -10,8 +10,13 @@ export default function Overview() {
   const [recent, setRecent] = useState([])
 
   useEffect(() => {
-    getOverview().then(setData).catch((err) => setError(err.message))
-    getLogs('login', { range: 'all', sort: 'timestamp', dir: 'desc', pageSize: 8 }).then((r) => setRecent(r.rows)).catch(() => {})
+    const load = () => {
+      getOverview().then(setData).catch((err) => setError(err.message))
+      getLogs('login', { range: 'all', sort: 'timestamp', dir: 'desc', pageSize: 8 }).then((r) => setRecent(r.rows)).catch(() => {})
+    }
+    load()
+    const id = setInterval(load, 10000)
+    return () => clearInterval(id)
   }, [])
 
   if (error) return <div className="text-sm text-danger">Couldn't reach the server: {error}</div>
@@ -43,7 +48,7 @@ export default function Overview() {
             {recent.map((row) => (
               <div key={row.id} className="flex items-center justify-between py-2 text-sm">
                 <div>
-                  <div className="text-text-primary">{row.device_id}</div>
+                  <div className="text-text-primary">{row.device_model || row.device_id}</div>
                   <div className="text-xs text-text-secondary">{row.geo_city}, {row.geo_country} · {row.timestamp}</div>
                 </div>
                 <div className="flex items-center gap-2">

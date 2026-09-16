@@ -18,6 +18,7 @@ export default function DeviceDetailSheet({ deviceId, onClose }) {
       ) : (
         <div className="flex flex-col gap-4 text-sm">
           <div className="text-text-secondary text-xs">
+            {data.device.device_model ? `${data.device.device_model} · ` : ''}
             {data.device.device_type} · {data.device.os} · {data.device.browser} · {data.device.total_sessions} sessions
           </div>
 

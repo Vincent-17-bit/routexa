@@ -9,8 +9,13 @@ export function useLogData(type, filters, page, pageSize = 25) {
   const refresh = () => setRefreshTick((t) => t + 1)
 
   useEffect(() => {
+    const id = setInterval(refresh, 15000)
+    return () => clearInterval(id)
+  }, [])
+
+  useEffect(() => {
     let alive = true
-    setLoading(true)
+    if (!rows.length) setLoading(true)
     getLogs(type, { ...filters, page, pageSize, browser: filters.browser.join(','), device: filters.device.join(',') })
       .then((data) => {
         if (!alive) return

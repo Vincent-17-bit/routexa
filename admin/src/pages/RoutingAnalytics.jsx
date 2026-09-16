@@ -2,7 +2,7 @@ import LogTable from '../components/ui/LogTable'
 import StatusPill from '../components/ui/StatusPill'
 
 const columns = [
-  { key: 'device_id', label: 'Device' },
+  { key: 'device_id', label: 'Device', render: (r) => r.device_model || r.device_id },
   { key: 'origin', label: 'Route', render: (r) => `${r.origin} → ${r.destination}` },
   { key: 'mode', label: 'Mode' },
   { key: 'distance_km', label: 'Distance', render: (r) => `${r.distance_km ?? '—'} km` },

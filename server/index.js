@@ -3,6 +3,7 @@ import cors from 'cors'
 import logsRouter from './routes/logs.js'
 import devicesRouter from './routes/devices.js'
 import trackRouter from './routes/track.js'
+import cronRouter from './routes/cron.js'
 import { migrate } from './db/migrate.js'
 
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
@@ -18,6 +19,7 @@ app.get('/api/health', (_req, res) => res.json({ status: 'ok' }))
 app.use('/api/logs', logsRouter)
 app.use('/api/devices', devicesRouter)
 app.use('/api', trackRouter)
+app.use('/api/cron', cronRouter)
 
 app.use((err, _req, res, _next) => {
   console.error(err)

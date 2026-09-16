@@ -1,28 +1,32 @@
 import { Router } from 'express'
 import { asyncHandler } from '../lib/asyncHandler.js'
 import { db } from '../db/client.js'
+import { lookupGeo } from '../lib/geoip.js'
+import { parseDeviceModel } from '../lib/deviceModel.js'
 
 const router = Router()
 
-async function upsertDevice({ device_id, fingerprint_hash, device_type, os, browser }) {
+async function upsertDevice({ device_id, fingerprint_hash, device_type, os, browser, device_model }) {
   await db.execute({
     sql: `
-      INSERT INTO devices (device_id, fingerprint_hash, device_type, os, browser)
-      VALUES (?, ?, ?, ?, ?)
+      INSERT INTO devices (device_id, fingerprint_hash, device_type, os, browser, device_model)
+      VALUES (?, ?, ?, ?, ?, ?)
       ON CONFLICT (device_id) DO UPDATE SET
         last_seen = datetime('now'),
         device_type = excluded.device_type,
         os = excluded.os,
-        browser = excluded.browser
+        browser = excluded.browser,
+        device_model = COALESCE(excluded.device_model, devices.device_model)
     `,
-    args: [device_id, fingerprint_hash, device_type ?? null, os ?? null, browser ?? null]
+    args: [device_id, fingerprint_hash, device_type ?? null, os ?? null, browser ?? null, device_model ?? null]
   })
 }
 
 router.post('/devices/track', asyncHandler(async (req, res) => {
   const { device_id, fingerprint_hash, device_type, os, browser } = req.body || {}
   if (!device_id) return res.status(400).json({ error: 'device_id required' })
-  await upsertDevice({ device_id, fingerprint_hash: fingerprint_hash || device_id, device_type, os, browser })
+  const device_model = parseDeviceModel(req.headers['user-agent'])
+  await upsertDevice({ device_id, fingerprint_hash: fingerprint_hash || device_id, device_type, os, browser, device_model })
   res.json({ ok: true })
 }))
 
@@ -35,17 +39,19 @@ router.post('/devices/:deviceId/offline', asyncHandler(async (req, res) => {
 }))
 
 router.post('/logs/login', asyncHandler(async (req, res) => {
-  const { device_id, success = true, fingerprint_hash, device_type, os, browser, geo_city, geo_country } = req.body || {}
+  const { device_id, success = true, fingerprint_hash, device_type, os, browser } = req.body || {}
   if (!device_id) return res.status(400).json({ error: 'device_id required' })
 
-  await upsertDevice({ device_id, fingerprint_hash: fingerprint_hash || device_id, device_type, os, browser })
+  const userAgent = req.headers['user-agent'] || null
+  const device_model = parseDeviceModel(userAgent)
+  await upsertDevice({ device_id, fingerprint_hash: fingerprint_hash || device_id, device_type, os, browser, device_model })
 
   const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.ip
-  const userAgent = req.headers['user-agent'] || null
+  const { city: geo_city, country: geo_country } = await lookupGeo(ip)
 
   await db.execute({
     sql: `INSERT INTO login_logs (device_id, ip, geo_city, geo_country, user_agent, success) VALUES (?, ?, ?, ?, ?, ?)`,
-    args: [device_id, ip, geo_city || null, geo_country || null, userAgent, success ? 1 : 0]
+    args: [device_id, ip, geo_city, geo_country, userAgent, success ? 1 : 0]
   })
 
   await db.execute({

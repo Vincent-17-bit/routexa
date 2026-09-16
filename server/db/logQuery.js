@@ -42,7 +42,7 @@ export function buildLogQuery(type, { range, browser, device, sort, dir, page, p
 
   const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : ''
   const sql = `
-    SELECT l.*, d.browser AS device_browser, d.device_type AS device_type
+    SELECT l.*, d.browser AS device_browser, d.device_type AS device_type, d.device_model AS device_model
     FROM ${def.table} l
     JOIN devices d ON d.device_id = l.device_id
     ${whereSql}
