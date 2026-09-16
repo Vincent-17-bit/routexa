@@ -11,7 +11,10 @@ async function get(path, params = {}) {
     Object.fromEntries(Object.entries(params).filter(([, v]) => v !== undefined && v !== ''))
   ).toString()
   const res = await fetch(`${API_URL}${path}${qs ? `?${qs}` : ''}`)
-  if (!res.ok) throw new Error(`${path} failed: ${res.status}`)
+  if (!res.ok) {
+    const body = await res.json().catch(() => null)
+    throw new Error(body?.error || `${path} failed: ${res.status}`)
+  }
   return res.json()
 }
 
