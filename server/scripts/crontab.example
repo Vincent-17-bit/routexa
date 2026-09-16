@@ -1,0 +1,5 @@
+# daily rollup, 00:10 UTC
+10 0 * * * cd /path/to/routexa/server && node scripts/rollup.js >> /var/log/routexa-rollup.log 2>&1
+
+# S3 dump, 00:30 UTC
+30 0 * * * cd /path/to/routexa/server && node scripts/backup-to-s3.js >> /var/log/routexa-backup.log 2>&1

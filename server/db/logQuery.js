@@ -1,0 +1,59 @@
+import { db } from './client.js'
+
+const TABLES = {
+  login: { table: 'login_logs', sortable: ['timestamp', 'geo_city', 'success', 'device_id'] },
+  search: { table: 'search_logs', sortable: ['timestamp', 'query_text', 'mode', 'device_id'] },
+  route: { table: 'route_logs', sortable: ['timestamp', 'origin', 'destination', 'distance_km', 'device_id'] }
+}
+
+const RANGE_CLAUSE = {
+  today: "date(l.timestamp) = date('now')",
+  week: "l.timestamp >= datetime('now', '-7 days')",
+  month: "l.timestamp >= datetime('now', '-1 month')",
+  year: "l.timestamp >= datetime('now', '-1 year')",
+  all: null
+}
+
+export function buildLogQuery(type, { range, browser, device, sort, dir, page, pageSize, includeDeleted }) {
+  const def = TABLES[type]
+  if (!def) throw new Error(`unknown log type: ${type}`)
+
+  const where = []
+  const args = []
+
+  where.push(includeDeleted ? 'l.deleted_at IS NOT NULL' : 'l.deleted_at IS NULL')
+
+  const rangeSql = RANGE_CLAUSE[range] ?? null
+  if (rangeSql) where.push(rangeSql)
+
+  if (browser?.length) {
+    where.push(`d.browser IN (${browser.map(() => '?').join(',')})`)
+    args.push(...browser)
+  }
+  if (device?.length) {
+    where.push(`d.device_type IN (${device.map(() => '?').join(',')})`)
+    args.push(...device)
+  }
+
+  const sortCol = def.sortable.includes(sort) ? sort : 'timestamp'
+  const sortDir = dir === 'asc' ? 'ASC' : 'DESC'
+  const limit = Math.min(Math.max(pageSize ?? 25, 1), 100)
+  const offset = Math.max(page ?? 0, 0) * limit
+
+  const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : ''
+  const sql = `
+    SELECT l.*, d.browser AS device_browser, d.device_type AS device_type
+    FROM ${def.table} l
+    JOIN devices d ON d.device_id = l.device_id
+    ${whereSql}
+    ORDER BY l.${sortCol === 'device_id' ? 'device_id' : sortCol} ${sortDir}
+    LIMIT ? OFFSET ?
+  `
+  return { sql, args: [...args, limit, offset] }
+}
+
+export async function runLogQuery(type, params) {
+  const { sql, args } = buildLogQuery(type, params)
+  const res = await db.execute({ sql, args })
+  return res.rows
+}
