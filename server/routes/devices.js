@@ -1,9 +1,10 @@
 import { Router } from 'express'
+import { asyncHandler } from '../lib/asyncHandler.js'
 import { db } from '../db/client.js'
 
 const router = Router()
 
-router.get('/overview', async (_req, res) => {
+router.get('/overview', asyncHandler(async (_req, res) => {
   const [devices, active, loginsToday, searchesToday, trend] = await Promise.all([
     db.execute('SELECT COUNT(*) AS n FROM devices'),
     db.execute('SELECT COUNT(*) AS n FROM devices WHERE is_currently_online = 1'),
@@ -27,9 +28,9 @@ router.get('/overview', async (_req, res) => {
     searchesToday: searchesToday.rows[0].n,
     trend: trend.rows
   })
-})
+}))
 
-router.get('/', async (req, res) => {
+router.get('/', asyncHandler(async (req, res) => {
   const limit = Math.min(Number(req.query.pageSize) || 25, 100)
   const offset = (Number(req.query.page) || 0) * limit
   const result = await db.execute({
@@ -37,9 +38,9 @@ router.get('/', async (req, res) => {
     args: [limit, offset]
   })
   res.json({ rows: result.rows })
-})
+}))
 
-router.get('/:deviceId', async (req, res) => {
+router.get('/:deviceId', asyncHandler(async (req, res) => {
   const { deviceId } = req.params
   const [device, logins, searches, routes] = await Promise.all([
     db.execute({ sql: 'SELECT * FROM devices WHERE device_id = ?', args: [deviceId] }),
@@ -59,6 +60,6 @@ router.get('/:deviceId', async (req, res) => {
 
   if (!device.rows.length) return res.status(404).json({ error: 'device not found' })
   res.json({ device: device.rows[0], logins: logins.rows, searches: searches.rows, routes: routes.rows })
-})
+}))
 
 export default router

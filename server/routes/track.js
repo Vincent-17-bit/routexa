@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import { asyncHandler } from '../lib/asyncHandler.js'
 import { db } from '../db/client.js'
 
 const router = Router()
@@ -14,26 +15,26 @@ async function upsertDevice({ device_id, fingerprint_hash, device_type, os, brow
         os = excluded.os,
         browser = excluded.browser
     `,
-    args: [device_id, fingerprint_hash, device_type, os, browser]
+    args: [device_id, fingerprint_hash, device_type ?? null, os ?? null, browser ?? null]
   })
 }
 
-router.post('/devices/track', async (req, res) => {
+router.post('/devices/track', asyncHandler(async (req, res) => {
   const { device_id, fingerprint_hash, device_type, os, browser } = req.body || {}
   if (!device_id) return res.status(400).json({ error: 'device_id required' })
   await upsertDevice({ device_id, fingerprint_hash: fingerprint_hash || device_id, device_type, os, browser })
   res.json({ ok: true })
-})
+}))
 
-router.post('/devices/:deviceId/offline', async (req, res) => {
+router.post('/devices/:deviceId/offline', asyncHandler(async (req, res) => {
   await db.execute({
     sql: `UPDATE devices SET is_currently_online = 0 WHERE device_id = ?`,
     args: [req.params.deviceId]
   })
   res.json({ ok: true })
-})
+}))
 
-router.post('/logs/login', async (req, res) => {
+router.post('/logs/login', asyncHandler(async (req, res) => {
   const { device_id, success = true, fingerprint_hash, device_type, os, browser, geo_city, geo_country } = req.body || {}
   if (!device_id) return res.status(400).json({ error: 'device_id required' })
 
@@ -53,9 +54,9 @@ router.post('/logs/login', async (req, res) => {
   })
 
   res.json({ ok: true })
-})
+}))
 
-router.post('/logs/search', async (req, res) => {
+router.post('/logs/search', asyncHandler(async (req, res) => {
   const { device_id, session_id, query_text, query_type, mode, result_count } = req.body || {}
   if (!device_id || !query_text) return res.status(400).json({ error: 'device_id and query_text required' })
 
@@ -64,9 +65,9 @@ router.post('/logs/search', async (req, res) => {
     args: [device_id, session_id || null, query_text, query_type || null, mode || null, result_count ?? null]
   })
   res.json({ ok: true })
-})
+}))
 
-router.post('/logs/route', async (req, res) => {
+router.post('/logs/route', asyncHandler(async (req, res) => {
   const { device_id, origin, destination, mode, distance_km, eta_min, tolls_detected } = req.body || {}
   if (!device_id || !origin || !destination) return res.status(400).json({ error: 'device_id, origin, destination required' })
 
@@ -75,6 +76,6 @@ router.post('/logs/route', async (req, res) => {
     args: [device_id, origin, destination, mode || null, distance_km ?? null, eta_min ?? null, tolls_detected ? 1 : 0]
   })
   res.json({ ok: true })
-})
+}))
 
 export default router

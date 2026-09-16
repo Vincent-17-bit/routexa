@@ -19,6 +19,11 @@ app.use('/api/logs', logsRouter)
 app.use('/api/devices', devicesRouter)
 app.use('/api', trackRouter)
 
+app.use((err, _req, res, _next) => {
+  console.error(err)
+  res.status(500).json({ error: err.message || 'internal error' })
+})
+
 migrate().catch((err) => console.error('startup migration failed:', err.message))
 
 if (!process.env.VERCEL) {

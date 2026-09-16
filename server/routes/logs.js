@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import { asyncHandler } from '../lib/asyncHandler.js'
 import { db } from '../db/client.js'
 import { buildLogQuery, runLogQuery } from '../db/logQuery.js'
 
@@ -19,23 +20,23 @@ function parseParams(req) {
   }
 }
 
-router.get('/:type', async (req, res) => {
+router.get('/:type', asyncHandler(async (req, res) => {
   const { type } = req.params
   if (!TYPES.has(type)) return res.status(404).json({ error: 'unknown log type' })
   const params = parseParams(req)
   const rows = await runLogQuery(type, { ...params, includeDeleted: false })
   res.json({ rows, page: params.page, pageSize: params.pageSize })
-})
+}))
 
-router.get('/:type/deleted', async (req, res) => {
+router.get('/:type/deleted', asyncHandler(async (req, res) => {
   const { type } = req.params
   if (!TYPES.has(type)) return res.status(404).json({ error: 'unknown log type' })
   const params = parseParams(req)
   const rows = await runLogQuery(type, { ...params, sort: 'deleted_at', includeDeleted: true })
   res.json({ rows })
-})
+}))
 
-router.get('/:type/export', async (req, res) => {
+router.get('/:type/export', asyncHandler(async (req, res) => {
   const { type } = req.params
   if (!TYPES.has(type)) return res.status(404).json({ error: 'unknown log type' })
   const format = req.query.format === 'json' ? 'json' : 'csv'
@@ -55,9 +56,9 @@ router.get('/:type/export', async (req, res) => {
   res.setHeader('Content-Type', 'text/csv')
   res.setHeader('Content-Disposition', `attachment; filename="${type}_logs.csv"`)
   res.send(csv)
-})
+}))
 
-router.patch('/:type/:id/delete', async (req, res) => {
+router.patch('/:type/:id/delete', asyncHandler(async (req, res) => {
   const { type, id } = req.params
   if (!TYPES.has(type)) return res.status(404).json({ error: 'unknown log type' })
   await db.execute({
@@ -65,9 +66,9 @@ router.patch('/:type/:id/delete', async (req, res) => {
     args: [id]
   })
   res.json({ ok: true })
-})
+}))
 
-router.patch('/:type/:id/restore', async (req, res) => {
+router.patch('/:type/:id/restore', asyncHandler(async (req, res) => {
   const { type, id } = req.params
   if (!TYPES.has(type)) return res.status(404).json({ error: 'unknown log type' })
   await db.execute({
@@ -75,6 +76,6 @@ router.patch('/:type/:id/restore', async (req, res) => {
     args: [id]
   })
   res.json({ ok: true })
-})
+}))
 
 export default router
