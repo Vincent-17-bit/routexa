@@ -13,8 +13,8 @@ function requireCronAuth(req, res, next) {
   next()
 }
 
-router.get('/rollup', requireCronAuth, asyncHandler(async (_req, res) => {
-  const result = await rollupDay()
+router.get('/rollup', requireCronAuth, asyncHandler(async (req, res) => {
+  const result = await rollupDay(req.query.day)
   res.json({ ok: true, result })
 }))
 
