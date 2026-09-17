@@ -5,7 +5,7 @@ import { db } from '../db/client.js'
 const router = Router()
 
 router.get('/overview', asyncHandler(async (_req, res) => {
-  const [devices, active, loginsToday, searchesToday, trend] = await Promise.all([
+  const [devices, active, loginsToday, searchesToday, trend, categoryBreakdown] = await Promise.all([
     db.execute('SELECT COUNT(*) AS n FROM devices'),
     db.execute('SELECT COUNT(*) AS n FROM devices WHERE is_currently_online = 1'),
     db.execute(`SELECT COUNT(*) AS n FROM login_logs WHERE deleted_at IS NULL AND date(timestamp) = date('now')`),
@@ -18,6 +18,12 @@ router.get('/overview', asyncHandler(async (_req, res) => {
       WHERE day >= date('now', '-6 days')
       GROUP BY day
       ORDER BY day ASC
+    `),
+    db.execute(`
+      SELECT COALESCE(device_category, 'unknown') AS device_category, COUNT(*) AS n
+      FROM devices
+      GROUP BY device_category
+      ORDER BY n DESC
     `)
   ])
 
@@ -26,7 +32,8 @@ router.get('/overview', asyncHandler(async (_req, res) => {
     activeNow: active.rows[0].n,
     loginsToday: loginsToday.rows[0].n,
     searchesToday: searchesToday.rows[0].n,
-    trend: trend.rows
+    trend: trend.rows,
+    categoryBreakdown: categoryBreakdown.rows
   })
 }))
 

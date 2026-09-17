@@ -3,6 +3,7 @@ import { getOverview, getLogs, softDeleteLog } from '../lib/api'
 import MetricCard from '../components/ui/MetricCard'
 import TrendChart from '../components/ui/TrendChart'
 import StatusPill from '../components/ui/StatusPill'
+import { CATEGORY_ICON, CATEGORY_LABEL } from '../lib/deviceCategory'
 
 export default function Overview() {
   const [data, setData] = useState(null)
@@ -40,6 +41,22 @@ export default function Overview() {
         <div className="rounded-xl border-[0.5px] border-border bg-surface p-4">
           <div className="mb-2 text-xs text-text-secondary">7-day trend</div>
           <TrendChart trend={data.trend} />
+        </div>
+
+        <div className="rounded-xl border-[0.5px] border-border bg-surface p-4">
+          <div className="mb-2 text-xs text-text-secondary">Devices by type</div>
+          <div className="flex flex-col gap-1.5">
+            {data.categoryBreakdown.map((c) => (
+              <div key={c.device_category} className="flex items-center justify-between text-sm">
+                <span className={c.device_category === 'smartwatch' && c.n > 0 ? 'text-danger' : 'text-text-primary'}>
+                  <span className="mr-1.5">{CATEGORY_ICON[c.device_category] || CATEGORY_ICON.unknown}</span>
+                  {CATEGORY_LABEL[c.device_category] || c.device_category}
+                </span>
+                <span className="text-text-secondary">{c.n}</span>
+              </div>
+            ))}
+            {!data.categoryBreakdown.length && <div className="text-xs text-text-muted">No devices yet.</div>}
+          </div>
         </div>
 
         <div className="rounded-xl border-[0.5px] border-border bg-surface p-4">

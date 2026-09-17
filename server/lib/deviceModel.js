@@ -1,22 +1,38 @@
-// Best-effort model extraction from the User-Agent header.
-// Android UAs commonly embed the exact model (e.g. "SM-A165F", "itel S665L").
-// iOS never exposes the exact model in the UA (Apple strips it by design),
-// so iPhone/iPad only ever resolve to the generic family name.
-export function parseDeviceModel(ua) {
-  if (!ua) return null
+import { UAParser } from 'ua-parser-js'
 
-  if (/iphone/i.test(ua)) return 'iPhone'
-  if (/ipad/i.test(ua)) return 'iPad'
+function watchModel(ua) {
+  const m = ua.match(/Watch\s?OS\s?([\d_.]+)/i)
+  if (m) return `watchOS ${m[1].replace(/_/g, '.')}`
+  if (/wear\s?os/i.test(ua)) return 'Wear OS'
+  return null
+}
 
-  const androidMatch = ua.match(/Android[^;]*;\s*([^;)]+?)\s*(Build\/|\))/i)
-  if (androidMatch) {
-    const raw = androidMatch[1].trim()
-    if (raw && !/^(K|wv|Mobile)$/i.test(raw)) return raw
+export function parseDevice(ua) {
+  if (!ua) return { device_type: 'unknown', device_model: null }
+
+  const isWearable = /watch\s?os|wear\s?os/i.test(ua)
+  const { device, os, browser } = new UAParser(ua).getResult()
+  const type = isWearable ? 'wearable' : device.type
+
+  if (type === 'mobile' || type === 'tablet') {
+    const isApple = /iphone|ipad/i.test(ua)
+    const model = isApple ? (type === 'tablet' ? 'iPad' : 'iPhone') : (device.model || device.vendor || null)
+    return { device_type: type, device_model: model }
   }
 
-  if (/Macintosh/i.test(ua)) return 'Mac'
-  if (/Windows/i.test(ua)) return 'Windows PC'
-  if (/Linux/i.test(ua) && !/Android/i.test(ua)) return 'Linux PC'
+  if (type === 'smarttv') {
+    return { device_type: 'smart_tv', device_model: [os.name, os.version].filter(Boolean).join(' ') || device.model || 'Smart TV' }
+  }
 
-  return null
+  if (type === 'wearable') {
+    return { device_type: 'smartwatch', device_model: watchModel(ua) || [os.name, os.version].filter(Boolean).join(' ') || device.model || 'Smartwatch' }
+  }
+
+  if (!type && os.name) {
+    const osStr = [os.name, os.version].filter(Boolean).join(' ')
+    const browserStr = [browser.name, browser.version?.split('.')[0]].filter(Boolean).join(' ')
+    return { device_type: 'pc', device_model: [osStr, browserStr].filter(Boolean).join(' · ') || null }
+  }
+
+  return { device_type: 'unknown', device_model: ua.slice(0, 100) }
 }

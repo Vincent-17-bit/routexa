@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { getDevices } from '../lib/api'
 import StatusPill from '../components/ui/StatusPill'
 import DeviceDetailSheet from '../components/layout/DeviceDetailSheet'
+import { CATEGORY_ICON, categoryModelLabel } from '../lib/deviceCategory'
 
 export default function Devices() {
   const [rows, setRows] = useState([])
@@ -20,7 +21,10 @@ export default function Devices() {
           className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-nested"
         >
           <div>
-            <div className="text-sm text-text-primary">{d.device_model || d.device_id}</div>
+            <div className="text-sm text-text-primary">
+              <span className="text-cyan mr-1">{CATEGORY_ICON[d.device_category] || CATEGORY_ICON.unknown}</span>
+              {categoryModelLabel(d.device_category, d.device_model)}
+            </div>
             <div className="text-xs text-text-secondary">{d.device_type} · {d.os} · {d.browser}</div>
           </div>
           <StatusPill tone={d.is_currently_online ? 'success' : 'neutral'}>

@@ -2,31 +2,32 @@ import { Router } from 'express'
 import { asyncHandler } from '../lib/asyncHandler.js'
 import { db } from '../db/client.js'
 import { lookupGeo } from '../lib/geoip.js'
-import { parseDeviceModel } from '../lib/deviceModel.js'
+import { parseDevice } from '../lib/deviceModel.js'
 
 const router = Router()
 
-async function upsertDevice({ device_id, fingerprint_hash, device_type, os, browser, device_model }) {
+async function upsertDevice({ device_id, fingerprint_hash, device_type, os, browser, device_model, device_category }) {
   await db.execute({
     sql: `
-      INSERT INTO devices (device_id, fingerprint_hash, device_type, os, browser, device_model)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO devices (device_id, fingerprint_hash, device_type, os, browser, device_model, device_category)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT (device_id) DO UPDATE SET
         last_seen = datetime('now'),
         device_type = excluded.device_type,
         os = excluded.os,
         browser = excluded.browser,
-        device_model = COALESCE(excluded.device_model, devices.device_model)
+        device_model = COALESCE(excluded.device_model, devices.device_model),
+        device_category = COALESCE(excluded.device_category, devices.device_category)
     `,
-    args: [device_id, fingerprint_hash, device_type ?? null, os ?? null, browser ?? null, device_model ?? null]
+    args: [device_id, fingerprint_hash, device_type ?? null, os ?? null, browser ?? null, device_model ?? null, device_category ?? null]
   })
 }
 
 router.post('/devices/track', asyncHandler(async (req, res) => {
   const { device_id, fingerprint_hash, device_type, os, browser } = req.body || {}
   if (!device_id) return res.status(400).json({ error: 'device_id required' })
-  const device_model = parseDeviceModel(req.headers['user-agent'])
-  await upsertDevice({ device_id, fingerprint_hash: fingerprint_hash || device_id, device_type, os, browser, device_model })
+  const { device_type: device_category, device_model } = parseDevice(req.headers['user-agent'])
+  await upsertDevice({ device_id, fingerprint_hash: fingerprint_hash || device_id, device_type, os, browser, device_model, device_category })
   res.json({ ok: true })
 }))
 
@@ -43,8 +44,8 @@ router.post('/logs/login', asyncHandler(async (req, res) => {
   if (!device_id) return res.status(400).json({ error: 'device_id required' })
 
   const userAgent = req.headers['user-agent'] || null
-  const device_model = parseDeviceModel(userAgent)
-  await upsertDevice({ device_id, fingerprint_hash: fingerprint_hash || device_id, device_type, os, browser, device_model })
+  const { device_type: device_category, device_model } = parseDevice(userAgent)
+  await upsertDevice({ device_id, fingerprint_hash: fingerprint_hash || device_id, device_type, os, browser, device_model, device_category })
 
   const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.ip
   const { city: geo_city, country: geo_country } = await lookupGeo(ip)
