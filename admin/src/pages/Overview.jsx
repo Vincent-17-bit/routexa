@@ -41,6 +41,7 @@ export default function Overview() {
         <div className="rounded-xl border-[0.5px] border-border bg-surface p-4">
           <div className="mb-2 text-xs text-text-secondary">7-day trend</div>
           <TrendChart trend={data.trend} />
+          <div className="mt-2 text-[11px] text-text-muted">★ peak day · hollow point = today, still counting</div>
         </div>
 
         <div className="rounded-xl border-[0.5px] border-border bg-surface p-4">
