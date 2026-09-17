@@ -8,14 +8,14 @@ router.get('/overview', asyncHandler(async (_req, res) => {
   const [devices, active, loginsToday, searchesToday, trend, categoryBreakdown] = await Promise.all([
     db.execute('SELECT COUNT(*) AS n FROM devices'),
     db.execute('SELECT COUNT(*) AS n FROM devices WHERE is_currently_online = 1'),
-    db.execute(`SELECT COUNT(*) AS n FROM login_logs WHERE deleted_at IS NULL AND date(timestamp) = date('now')`),
-    db.execute(`SELECT COUNT(*) AS n FROM search_logs WHERE deleted_at IS NULL AND date(timestamp) = date('now')`),
+    db.execute(`SELECT COUNT(*) AS n FROM login_logs WHERE deleted_at IS NULL AND date(timestamp, '+3 hours') = date('now', '+3 hours')`),
+    db.execute(`SELECT COUNT(*) AS n FROM search_logs WHERE deleted_at IS NULL AND date(timestamp, '+3 hours') = date('now', '+3 hours')`),
     db.execute(`
       SELECT day,
         SUM(logins_ok + logins_fail) AS logins,
         SUM(searches) AS searches
       FROM device_daily_stats
-      WHERE day >= date('now', '-6 days')
+      WHERE day >= date('now', '+3 hours', '-6 days')
       GROUP BY day
       ORDER BY day ASC
     `),

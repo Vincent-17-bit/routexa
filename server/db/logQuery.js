@@ -7,7 +7,7 @@ const TABLES = {
 }
 
 const RANGE_CLAUSE = {
-  today: "date(l.timestamp) = date('now')",
+  today: "date(l.timestamp, '+3 hours') = date('now', '+3 hours')",
   week: "l.timestamp >= datetime('now', '-7 days')",
   month: "l.timestamp >= datetime('now', '-1 month')",
   year: "l.timestamp >= datetime('now', '-1 year')",

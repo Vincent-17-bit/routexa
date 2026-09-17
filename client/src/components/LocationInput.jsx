@@ -55,8 +55,10 @@ export default function LocationInput({ value, placeholder, isTarget, onSelect, 
       positionDropdown()
       setOpen(true)
       trackSearch(text, { mode, resultCount: results.length })
-    } catch {
+    } catch (err) {
+      console.error('[routexa] search provider failed:', err.message)
       setSuggestions([])
+      trackSearch(text, { mode, resultCount: 0 })
     } finally {
       setLoading(false)
     }

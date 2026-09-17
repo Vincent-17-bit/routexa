@@ -35,7 +35,7 @@ export default function App() {
   const [locationError, setLocationError] = useState(null)
   const [recentSearches, setRecentSearches] = useState(() => {
     try {
-      return JSON.parse(localStorage.getItem('routexa:recent-searches') || '[]')
+      return JSON.parse(sessionStorage.getItem('routexa:recent-searches') || '[]')
     } catch {
       return []
     }
@@ -110,7 +110,7 @@ export default function App() {
       const entry = { id: `${result.text}-${result.center[0]}-${result.center[1]}`, text: result.text, context: result.context || '', center: result.center }
       const next = [entry, ...prev.filter((r) => r.id !== entry.id)].slice(0, 3)
       try {
-        localStorage.setItem('routexa:recent-searches', JSON.stringify(next))
+        sessionStorage.setItem('routexa:recent-searches', JSON.stringify(next))
       } catch {
         // storage unavailable (private mode etc); recents just won't persist
       }
@@ -146,7 +146,7 @@ export default function App() {
     setRecentSearches((prev) => {
       const next = prev.filter((r) => r.id !== id)
       try {
-        localStorage.setItem('routexa:recent-searches', JSON.stringify(next))
+        sessionStorage.setItem('routexa:recent-searches', JSON.stringify(next))
       } catch {
         // storage unavailable (private mode etc); change just won't persist
       }
