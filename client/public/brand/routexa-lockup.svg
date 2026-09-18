@@ -1,0 +1,16 @@
+<svg width="320" height="100" viewBox="0 0 320 100" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ROUTEXA">
+  <path d="M22 78 L48 32 L82 32"
+        fill="none"
+        stroke="#0D9488"
+        stroke-width="9"
+        stroke-linecap="round"
+        stroke-linejoin="miter" />
+  <circle cx="82" cy="32" r="7" fill="#0D9488" />
+
+  <text x="110" y="63"
+        font-family="Inter, 'Helvetica Neue', Arial, sans-serif"
+        font-size="40"
+        font-weight="600"
+        letter-spacing="1"
+        fill="#0D9488">ROUTEXA</text>
+</svg>
