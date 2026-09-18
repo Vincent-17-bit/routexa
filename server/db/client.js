@@ -1,7 +1,6 @@
 import { createClient } from '@libsql/client'
 
 let _db = null
-let _archiveDb = null
 
 function getDb() {
   if (!_db) {
@@ -30,23 +29,3 @@ export const db = new Proxy(
     }
   }
 )
-
-// optional read-only archive db for old rows moved out of the hot tables
-export const archiveDb =
-  process.env.TURSO_ARCHIVE_DATABASE_URL && process.env.TURSO_ARCHIVE_AUTH_TOKEN
-    ? new Proxy(
-        {},
-        {
-          get: (_t, prop) => {
-            if (!_archiveDb) {
-              _archiveDb = createClient({
-                url: process.env.TURSO_ARCHIVE_DATABASE_URL,
-                authToken: process.env.TURSO_ARCHIVE_AUTH_TOKEN
-              })
-            }
-            const val = _archiveDb[prop]
-            return typeof val === 'function' ? val.bind(_archiveDb) : val
-          }
-        }
-      )
-    : null

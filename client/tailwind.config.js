@@ -25,11 +25,6 @@ export default {
       },
       borderColor: {
         card: { light: 'rgba(226,232,240,0.8)', dark: 'rgba(51,65,85,0.6)' }
-      },
-      height: {
-        sheet1: '52px',
-        sheet2: '180px',
-        sheet3: '80vh'
       }
     }
   },

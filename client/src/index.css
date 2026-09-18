@@ -4,11 +4,6 @@
 
 :root {
   --sheet-height: 52px;
-  --shield-bg: #538235;
-  --shield-text: #E1BC29;
-  --county-label: #7E8B9B;
-  --road-highway: #8389A3;
-  --road-arterial: #B0B8C8;
 }
 
 html, body, #root {
@@ -23,17 +18,6 @@ body {
 .glass {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-}
-
-.county-label {
-  color: var(--county-label);
-  text-transform: uppercase;
-  letter-spacing: 0.15em;
-}
-
-.road-shield {
-  background: var(--shield-bg);
-  color: var(--shield-text);
 }
 
 @keyframes live-pulse {

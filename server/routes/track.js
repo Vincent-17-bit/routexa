@@ -3,6 +3,7 @@ import { asyncHandler } from '../lib/asyncHandler.js'
 import { db } from '../db/client.js'
 import { lookupGeo } from '../lib/geoip.js'
 import { parseDevice } from '../lib/deviceModel.js'
+import { SESSION_GAP_MINUTES } from '../lib/sessionConfig.js'
 
 const router = Router()
 
@@ -38,8 +39,6 @@ router.post('/devices/:deviceId/offline', asyncHandler(async (req, res) => {
   })
   res.json({ ok: true })
 }))
-
-const SESSION_GAP_MINUTES = Number(process.env.SESSION_GAP_MINUTES) || 30
 
 async function secondsSinceLastLogin(device_id) {
   const result = await db.execute({

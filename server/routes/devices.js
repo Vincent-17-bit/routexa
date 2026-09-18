@@ -1,13 +1,18 @@
 import { Router } from 'express'
 import { asyncHandler } from '../lib/asyncHandler.js'
 import { db } from '../db/client.js'
+import { SESSION_GAP_MINUTES } from '../lib/sessionConfig.js'
 
 const router = Router()
+const ONLINE_CUTOFF = `-${SESSION_GAP_MINUTES} minutes`
 
 router.get('/overview', asyncHandler(async (_req, res) => {
   const [devices, active, loginsToday, searchesToday, trend, categoryBreakdown] = await Promise.all([
     db.execute('SELECT COUNT(*) AS n FROM devices'),
-    db.execute('SELECT COUNT(*) AS n FROM devices WHERE is_currently_online = 1'),
+    db.execute({
+      sql: `SELECT COUNT(*) AS n FROM devices WHERE is_currently_online = 1 AND last_seen >= datetime('now', ?)`,
+      args: [ONLINE_CUTOFF]
+    }),
     db.execute(`SELECT COUNT(*) AS n FROM login_logs WHERE deleted_at IS NULL AND date(timestamp, '+3 hours') = date('now', '+3 hours')`),
     db.execute(`SELECT COUNT(*) AS n FROM search_logs WHERE deleted_at IS NULL AND date(timestamp, '+3 hours') = date('now', '+3 hours')`),
     db.execute(`
@@ -37,20 +42,36 @@ router.get('/overview', asyncHandler(async (_req, res) => {
   })
 }))
 
+const DEVICE_COLUMNS = 'device_id, fingerprint_hash, first_seen, last_seen, device_type, os, browser, total_sessions, device_model, device_category'
+
 router.get('/', asyncHandler(async (req, res) => {
   const limit = Math.min(Number(req.query.pageSize) || 25, 100)
   const offset = (Number(req.query.page) || 0) * limit
+  const totalResult = await db.execute('SELECT COUNT(*) AS n FROM devices')
   const result = await db.execute({
-    sql: 'SELECT * FROM devices ORDER BY last_seen DESC LIMIT ? OFFSET ?',
-    args: [limit, offset]
+    sql: `
+      SELECT ${DEVICE_COLUMNS},
+        (is_currently_online = 1 AND last_seen >= datetime('now', ?)) AS is_currently_online
+      FROM devices
+      ORDER BY last_seen DESC
+      LIMIT ? OFFSET ?
+    `,
+    args: [ONLINE_CUTOFF, limit, offset]
   })
-  res.json({ rows: result.rows })
+  res.json({ rows: result.rows, total: totalResult.rows[0].n, page: Number(req.query.page) || 0, pageSize: limit })
 }))
 
 router.get('/:deviceId', asyncHandler(async (req, res) => {
   const { deviceId } = req.params
   const [device, logins, searches, routes] = await Promise.all([
-    db.execute({ sql: 'SELECT * FROM devices WHERE device_id = ?', args: [deviceId] }),
+    db.execute({
+      sql: `
+        SELECT ${DEVICE_COLUMNS},
+          (is_currently_online = 1 AND last_seen >= datetime('now', ?)) AS is_currently_online
+        FROM devices WHERE device_id = ?
+      `,
+      args: [ONLINE_CUTOFF, deviceId]
+    }),
     db.execute({
       sql: 'SELECT * FROM login_logs WHERE device_id = ? AND deleted_at IS NULL ORDER BY timestamp DESC LIMIT 50',
       args: [deviceId]

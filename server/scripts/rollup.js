@@ -36,19 +36,21 @@ export async function rollupDay(day) {
     byDevice.set(r.device_id, cur)
   }
 
-  for (const [deviceId, stats] of byDevice) {
-    await db.execute({
-      sql: `
-        INSERT INTO device_daily_stats (device_id, day, logins_ok, logins_fail, searches, routes)
-        VALUES (?, ?, ?, ?, ?, ?)
-        ON CONFLICT (device_id, day) DO UPDATE SET
-          logins_ok = excluded.logins_ok,
-          logins_fail = excluded.logins_fail,
-          searches = excluded.searches,
-          routes = excluded.routes
-      `,
+  if (byDevice.size) {
+    const upsertSql = `
+      INSERT INTO device_daily_stats (device_id, day, logins_ok, logins_fail, searches, routes)
+      VALUES (?, ?, ?, ?, ?, ?)
+      ON CONFLICT (device_id, day) DO UPDATE SET
+        logins_ok = excluded.logins_ok,
+        logins_fail = excluded.logins_fail,
+        searches = excluded.searches,
+        routes = excluded.routes
+    `
+    const statements = [...byDevice].map(([deviceId, stats]) => ({
+      sql: upsertSql,
       args: [deviceId, targetDay, stats.logins_ok, stats.logins_fail, stats.searches, stats.routes]
-    })
+    }))
+    await db.batch(statements, 'write')
   }
 
   return { day: targetDay, devices: byDevice.size }

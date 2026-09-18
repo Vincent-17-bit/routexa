@@ -1,6 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Header from './components/Header'
-import MapContainer from './components/MapContainer'
 import SearchPanel from './components/SearchPanel'
 import RouteResults from './components/RouteResults'
 import { TrafficToast, useTrafficWatcher } from './components/TrafficToast'
@@ -11,6 +10,9 @@ import { useSystemTheme } from './hooks/useSystemTheme'
 import { useNavigation } from './hooks/useNavigation'
 import { checkHealth, reverseGeocode, fetchDirections } from './lib/api'
 import { trackDevice, trackLogin, trackRoute, markOffline } from './lib/track'
+
+// mapbox-gl is heavy; split it into its own chunk so it only loads once the map is actually rendered
+const MapContainer = lazy(() => import('./components/MapContainer'))
 
 const EMPTY_POINT = { text: '', coords: null }
 const POLL_INTERVAL_MS = 45000
@@ -333,17 +335,19 @@ export default function App() {
   return (
     <div className="h-screen w-screen overflow-hidden">
       <Header />
-      <MapContainer
-        origin={origin}
-        destination={destination}
-        routes={routeDrawn ? routes : []}
-        activeRouteId={activeRouteId}
-        pickTargetField={pickTargetField}
-        onMapPick={handleMapPick}
-        mapFocus={mapFocus}
-        livePosition={nav.livePosition}
-        distanceFromRouteKm={nav.distanceFromRouteKm}
-      />
+      <Suspense fallback={<div className="absolute inset-0 z-0 flex items-center justify-center text-sm text-text-secondary-light dark:text-text-secondary-dark">Loading map…</div>}>
+        <MapContainer
+          origin={origin}
+          destination={destination}
+          routes={routeDrawn ? routes : []}
+          activeRouteId={activeRouteId}
+          pickTargetField={pickTargetField}
+          onMapPick={handleMapPick}
+          mapFocus={mapFocus}
+          livePosition={nav.livePosition}
+          distanceFromRouteKm={nav.distanceFromRouteKm}
+        />
+      </Suspense>
       <TrafficToast message={toastMessage} />
 
       {isMobile ? (
