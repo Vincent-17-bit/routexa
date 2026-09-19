@@ -124,9 +124,9 @@ export default function SearchPanel({
 
       <div className="px-4 py-3 relative">
         <div className="absolute left-[21px] top-[26px] bottom-[26px] flex flex-col items-center justify-between py-1 pointer-events-none">
-          <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
-          <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
-          <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
+          <span className="w-1 h-1 rounded-full bg-route-alt-light dark:bg-route-alt-dark" />
+          <span className="w-1 h-1 rounded-full bg-route-alt-light dark:bg-route-alt-dark" />
+          <span className="w-1 h-1 rounded-full bg-route-alt-light dark:bg-route-alt-dark" />
         </div>
 
         <div className="flex flex-col gap-2 pr-8">

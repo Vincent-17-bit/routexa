@@ -13,8 +13,10 @@ export default {
         },
         route: {
           active: { light: '#2563EB', dark: '#3B82F6' },
-          alt: { light: '#9CA3AF', dark: '#64748B' }
+          alt: { light: '#9CA3AF', dark: '#64748B' },
+          destination: { light: '#DB2777', dark: '#F472B6' }
         },
+        danger: { light: '#DC2626', dark: '#EF4444' },
         accent: { light: '#0D9488', dark: '#14B8A6' },
         traffic: {
           heavy: { light: '#DC2626', dark: '#EF4444', badge: 'rgba(220,38,38,0.12)', text: { light: '#B91C1C', dark: '#FCA5A5' } },

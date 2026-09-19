@@ -119,7 +119,7 @@ export default function LocationInput({ value, placeholder, isTarget, onSelect, 
           onClick={() => handleSelect(s)}
           className="w-full flex items-center gap-3 text-left px-3 py-2.5 hover:bg-black/5 dark:hover:bg-white/10 active:bg-black/10 dark:active:bg-white/15 border-b last:border-b-0 border-card-light dark:border-card-dark"
         >
-          <i className="fas fa-location-dot text-sm text-rose-500 shrink-0 w-4 text-center" />
+          <i className="fas fa-location-dot text-sm text-route-destination-light dark:text-route-destination-dark shrink-0 w-4 text-center" />
           <span className="min-w-0">
             <p className="text-sm font-medium truncate text-text-primary-light dark:text-text-primary-dark">{s.text}</p>
             {s.context && <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark truncate">{s.context}</p>}
@@ -133,9 +133,9 @@ export default function LocationInput({ value, placeholder, isTarget, onSelect, 
   return (
     <div className="relative flex items-center gap-2.5">
       {variant === 'origin' ? (
-        <span className="shrink-0 w-2.5 h-2.5 rounded-full border-2 border-slate-400 dark:border-slate-500" />
+        <span className="shrink-0 w-2.5 h-2.5 rounded-full border-2 border-text-secondary-light dark:border-text-secondary-dark" />
       ) : (
-        <i className="fas fa-location-dot shrink-0 text-rose-500 text-sm" />
+        <i className="fas fa-location-dot shrink-0 text-route-destination-light dark:text-route-destination-dark text-sm" />
       )}
       <div className="relative flex-1">
         <input

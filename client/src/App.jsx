@@ -284,17 +284,17 @@ export default function App() {
         onRemoveRecent={handleRemoveRecent}
       />
       {locationError && (
-        <p className="px-4 pb-2 text-xs text-rose-600 dark:text-rose-400">{locationError}</p>
+        <p className="px-4 pb-2 text-xs text-danger-light dark:text-danger-dark">{locationError}</p>
       )}
       {routeError && (
-        <p className="px-4 pb-2 text-xs text-rose-600 dark:text-rose-400">{routeError}</p>
+        <p className="px-4 pb-2 text-xs text-danger-light dark:text-danger-dark">{routeError}</p>
       )}
       {routeDrawn && (
         <div className="px-4 pb-2 flex items-center gap-2">
           {nav.isNavigating ? (
             <button
               onClick={nav.stop}
-              className="flex-1 h-9 rounded-lg text-sm font-semibold bg-rose-600 text-white hover:brightness-110 transition"
+              className="flex-1 h-9 rounded-lg text-sm font-semibold bg-danger-light dark:bg-danger-dark text-white hover:brightness-110 transition"
             >
               Cancel navigation
             </button>
@@ -314,10 +314,10 @@ export default function App() {
         </div>
       )}
       {nav.error && (
-        <p className="px-4 pb-2 text-xs text-rose-600 dark:text-rose-400">{nav.error}</p>
+        <p className="px-4 pb-2 text-xs text-danger-light dark:text-danger-dark">{nav.error}</p>
       )}
       {nav.isNavigating && nav.distanceFromRouteKm != null && nav.distanceFromRouteKm > 3 && (
-        <p className="px-4 pb-2 text-xs text-amber-600 dark:text-amber-400">
+        <p className="px-4 pb-2 text-xs text-traffic-moderate-text-light dark:text-traffic-moderate-text-dark">
           You're {nav.distanceFromRouteKm.toFixed(1)} km from the route — the route stays visible until you're closer.
         </p>
       )}
@@ -352,7 +352,7 @@ export default function App() {
 
       {isMobile ? (
         <div
-          className="fixed bottom-0 left-0 right-0 z-40 bg-white/85 dark:bg-slate-900/85 backdrop-blur-md rounded-t-2xl shadow-2xl flex flex-col"
+          className="fixed bottom-0 left-0 right-0 z-40 bg-surface-light dark:bg-surface-dark backdrop-blur-md rounded-t-2xl shadow-2xl flex flex-col"
           style={{ height: 'var(--sheet-height)' }}
         >
           <div className="relative shrink-0 h-8">

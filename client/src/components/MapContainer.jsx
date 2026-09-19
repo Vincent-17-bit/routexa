@@ -56,6 +56,21 @@ function styleLightBasemap(map) {
   }
 }
 
+// mirrors route.active / route.destination in tailwind.config.js — Mapbox
+// markers are plain DOM nodes but still need a literal hex, not a class
+const PIN_HEX = {
+  origin: { light: '#2563EB', dark: '#3B82F6' },
+  destination: { light: '#DB2777', dark: '#F472B6' }
+}
+
+function pinColor(kind, isDark) {
+  return PIN_HEX[kind][isDark ? 'dark' : 'light']
+}
+
+function setPinFill(marker, color) {
+  marker?.getElement()?.querySelector('path')?.setAttribute('fill', color)
+}
+
 function pinEl(color) {
   const el = document.createElement('div')
   el.innerHTML = `
@@ -80,7 +95,7 @@ function poiPinEl(category, name) {
   el.style.cursor = 'pointer'
   el.innerHTML = `
     <div style="position:absolute;bottom:40px;left:50%;transform:translateX(-50%);max-width:110px;">
-      <span class="text-[10px] font-medium leading-tight px-1.5 py-0.5 rounded-md shadow-sm bg-white/95 dark:bg-slate-900/90 text-slate-800 dark:text-slate-100 border border-slate-200/70 dark:border-slate-700/70 block truncate">${escapeHtml(name)}</span>
+      <span class="text-[10px] font-medium leading-tight px-1.5 py-0.5 rounded-md shadow-sm bg-white/95 dark:bg-slate-900/90 text-text-primary-light dark:text-text-primary-dark border border-card-light dark:border-card-dark block truncate">${escapeHtml(name)}</span>
     </div>
     <svg width="30" height="38" viewBox="0 0 22 28" xmlns="http://www.w3.org/2000/svg" style="position:absolute;inset:0;">
       <path d="M11 0C4.9 0 0 4.9 0 11c0 7.7 11 17 11 17s11-9.3 11-17C22 4.9 17.1 0 11 0z" fill="${category.color}" stroke="white" stroke-width="1"/>
@@ -234,6 +249,8 @@ export default function MapContainer({ origin, destination, routes, activeRouteI
 
     const handleThemeChange = (e) => {
       map.setStyle(e.matches ? DARK_STYLE : LIGHT_STYLE)
+      setPinFill(originMarkerRef.current, pinColor('origin', e.matches))
+      setPinFill(destMarkerRef.current, pinColor('destination', e.matches))
     }
     prefersDarkQuery.addEventListener('change', handleThemeChange)
 
@@ -269,7 +286,7 @@ export default function MapContainer({ origin, destination, routes, activeRouteI
       return
     }
     if (!originMarkerRef.current) {
-      originMarkerRef.current = new mapboxgl.Marker({ element: pinEl('#2563EB'), anchor: 'bottom' })
+      originMarkerRef.current = new mapboxgl.Marker({ element: pinEl(pinColor('origin', prefersDarkQuery.matches)), anchor: 'bottom' })
     }
     originMarkerRef.current.setLngLat(origin.coords).addTo(mapRef.current)
   }, [origin?.coords])
@@ -281,7 +298,7 @@ export default function MapContainer({ origin, destination, routes, activeRouteI
       return
     }
     if (!destMarkerRef.current) {
-      destMarkerRef.current = new mapboxgl.Marker({ element: pinEl('#DC2626'), anchor: 'bottom' })
+      destMarkerRef.current = new mapboxgl.Marker({ element: pinEl(pinColor('destination', prefersDarkQuery.matches)), anchor: 'bottom' })
     }
     destMarkerRef.current.setLngLat(destination.coords).addTo(mapRef.current)
   }, [destination?.coords])
