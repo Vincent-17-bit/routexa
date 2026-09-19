@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import mapboxgl from 'mapbox-gl'
 import { MAPBOX_TOKEN } from '../lib/api'
 import { KNOWN_MAKI_IDS, MAKI_TO_CATEGORY } from '../lib/poiCategories'
-import { resolveTrafficStatus } from '../lib/trafficStatus'
+import { resolveTrafficStatus, TRAFFIC_STATUS, TRAFFIC_HEX } from '../lib/trafficStatus'
 
 mapboxgl.accessToken = MAPBOX_TOKEN
 
@@ -13,7 +13,18 @@ const LIGHT_STYLE = 'mapbox://styles/mapbox/light-v11'
 const DARK_STYLE = 'mapbox://styles/mapbox/dark-v11'
 const prefersDarkQuery = window.matchMedia('(prefers-color-scheme: dark)')
 
-const ROUTE_STATUS_COLOR = ['match', ['get', 'status'], 'heavy', '#EA4335', 'moderate', '#FBBC05', 'clear', '#0F9D58', '#0F9D58']
+// same traffic.* colors as the badges/toasts, picked for the active map mode
+function routeStatusColorExpr(isDark) {
+  const mode = isDark ? 'dark' : 'light'
+  const clear = TRAFFIC_HEX[TRAFFIC_STATUS.CLEAR][mode]
+  return [
+    'match', ['get', 'status'],
+    TRAFFIC_STATUS.HEAVY, TRAFFIC_HEX[TRAFFIC_STATUS.HEAVY][mode],
+    TRAFFIC_STATUS.MODERATE, TRAFFIC_HEX[TRAFFIC_STATUS.MODERATE][mode],
+    TRAFFIC_STATUS.CLEAR, clear,
+    clear
+  ]
+}
 
 function styleLightBasemap(map) {
   const setIfExists = (id, prop, value) => { if (map.getLayer(id)) map.setPaintProperty(id, prop, value) }
@@ -199,7 +210,7 @@ export default function MapContainer({ origin, destination, routes, activeRouteI
         type: 'line',
         source: 'route-active',
         layout: { 'line-cap': 'round', 'line-join': 'round' },
-        paint: { 'line-color': ROUTE_STATUS_COLOR, 'line-width': 7 }
+        paint: { 'line-color': routeStatusColorExpr(prefersDarkQuery.matches), 'line-width': 7 }
       })
 
       if (!prefersDarkQuery.matches) {
@@ -349,9 +360,9 @@ export default function MapContainer({ origin, destination, routes, activeRouteI
           <span className="font-medium text-text-secondary-light dark:text-text-secondary-dark">Live traffic</span>
           <span className="italic text-text-secondary-light dark:text-text-secondary-dark">Fast</span>
           <span className="flex items-center gap-0.5">
-            <span className="w-3 h-1.5 rounded-sm" style={{ background: '#0F9D58' }} />
-            <span className="w-3 h-1.5 rounded-sm" style={{ background: '#FBBC05' }} />
-            <span className="w-3 h-1.5 rounded-sm" style={{ background: '#EA4335' }} />
+            <span className="w-3 h-1.5 rounded-sm bg-traffic-clear-light dark:bg-traffic-clear-dark" />
+            <span className="w-3 h-1.5 rounded-sm bg-traffic-moderate-light dark:bg-traffic-moderate-dark" />
+            <span className="w-3 h-1.5 rounded-sm bg-traffic-heavy-light dark:bg-traffic-heavy-dark" />
           </span>
           <span className="italic text-text-secondary-light dark:text-text-secondary-dark">Slow</span>
         </div>

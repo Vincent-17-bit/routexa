@@ -4,6 +4,14 @@ export const TRAFFIC_STATUS = {
   CLEAR: 'clear'
 }
 
+// mirrors traffic.* in tailwind.config.js — kept here too since Mapbox GL
+// paint properties need literal hex, not Tailwind classes or CSS vars
+export const TRAFFIC_HEX = {
+  [TRAFFIC_STATUS.HEAVY]: { light: '#DC2626', dark: '#EF4444' },
+  [TRAFFIC_STATUS.MODERATE]: { light: '#D97706', dark: '#F59E0B' },
+  [TRAFFIC_STATUS.CLEAR]: { light: '#059669', dark: '#10B981' }
+}
+
 const STATUS_META = {
   [TRAFFIC_STATUS.HEAVY]: {
     label: 'Heavy Traffic',
