@@ -32,12 +32,17 @@ router.get('/overview', asyncHandler(async (_req, res) => {
     `)
   ])
 
+  const today = new Date(Date.now() + 3 * 3600000).toISOString().slice(0, 10)
+  const trendRows = trend.rows.at(-1)?.day === today
+    ? trend.rows
+    : [...trend.rows, { day: today, logins: loginsToday.rows[0].n, searches: searchesToday.rows[0].n }]
+
   res.json({
     totalDevices: devices.rows[0].n,
     activeNow: active.rows[0].n,
     loginsToday: loginsToday.rows[0].n,
     searchesToday: searchesToday.rows[0].n,
-    trend: trend.rows,
+    trend: trendRows,
     categoryBreakdown: categoryBreakdown.rows
   })
 }))
