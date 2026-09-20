@@ -114,11 +114,11 @@ export default function About() {
         </Section>
 
         <Section title="Changes to this page">
-          <p>We may update this page from time to time. The date below reflects the last update.</p>
+          <p>We may update this page from time to time.</p>
         </Section>
 
         <p className="mt-10 text-xs text-text-secondary-light dark:text-text-secondary-dark">
-          Last updated September 2026. Created, drafted, and built by viniihkr3.
+          © {new Date().getFullYear()} ROUTEXA. Created, drafted, and built by viniihkr3.
         </p>
       </div>
     </main>
