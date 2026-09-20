@@ -62,6 +62,7 @@ const PIN_HEX = {
   origin: { light: '#0D9488', dark: '#14B8A6' },
   destination: { light: '#DB2777', dark: '#F472B6' }
 }
+const ROUTE_ALT_HEX = { light: '#9CA3AF', dark: '#64748B' }
 const LIVE_MARKER_RGB = { light: '13,148,136', dark: '20,184,166' }
 
 function pinColor(kind, isDark) {
@@ -224,7 +225,7 @@ export default function MapContainer({ origin, destination, routes, activeRouteI
         type: 'line',
         source: 'route-alts',
         layout: { 'line-cap': 'round', 'line-join': 'round' },
-        paint: { 'line-color': '#9CA3AF', 'line-width': 5, 'line-opacity': 0.6 }
+        paint: { 'line-color': ROUTE_ALT_HEX[prefersDarkQuery.matches ? 'dark' : 'light'], 'line-width': 5, 'line-opacity': 0.6 }
       })
 
       map.addSource('route-active', { type: 'geojson', data: EMPTY_FC })
