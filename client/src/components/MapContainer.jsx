@@ -59,9 +59,10 @@ function styleLightBasemap(map) {
 // mirrors route.active / route.destination in tailwind.config.js — Mapbox
 // markers are plain DOM nodes but still need a literal hex, not a class
 const PIN_HEX = {
-  origin: { light: '#2563EB', dark: '#3B82F6' },
+  origin: { light: '#0D9488', dark: '#14B8A6' },
   destination: { light: '#DB2777', dark: '#F472B6' }
 }
+const LIVE_MARKER_RGB = { light: '13,148,136', dark: '20,184,166' }
 
 function pinColor(kind, isDark) {
   return PIN_HEX[kind][isDark ? 'dark' : 'light']
@@ -69,6 +70,13 @@ function pinColor(kind, isDark) {
 
 function setPinFill(marker, color) {
   marker?.getElement()?.querySelector('path')?.setAttribute('fill', color)
+}
+
+function setLiveMarkerColor(el, isDark) {
+  if (!el) return
+  const rgb = LIVE_MARKER_RGB[isDark ? 'dark' : 'light']
+  el.style.background = `rgb(${rgb})`
+  el.style.boxShadow = `0 0 0 6px rgba(${rgb},0.25)`
 }
 
 function pinEl(color) {
@@ -251,6 +259,7 @@ export default function MapContainer({ origin, destination, routes, activeRouteI
       map.setStyle(e.matches ? DARK_STYLE : LIGHT_STYLE)
       setPinFill(originMarkerRef.current, pinColor('origin', e.matches))
       setPinFill(destMarkerRef.current, pinColor('destination', e.matches))
+      setLiveMarkerColor(liveMarkerRef.current?.getElement(), e.matches)
     }
     prefersDarkQuery.addEventListener('change', handleThemeChange)
 
@@ -315,9 +324,8 @@ export default function MapContainer({ origin, destination, routes, activeRouteI
       el.style.width = '18px'
       el.style.height = '18px'
       el.style.borderRadius = '50%'
-      el.style.background = '#2563EB'
       el.style.border = '3px solid white'
-      el.style.boxShadow = '0 0 0 6px rgba(37,99,235,0.25)'
+      setLiveMarkerColor(el, prefersDarkQuery.matches)
       liveMarkerRef.current = new mapboxgl.Marker({ element: el, anchor: 'center' })
     }
     liveMarkerRef.current.setLngLat(livePosition).addTo(map)

@@ -12,7 +12,7 @@ export default {
           secondary: { light: '#64748B', dark: '#94A3B8' }
         },
         route: {
-          active: { light: '#2563EB', dark: '#3B82F6' },
+          active: { light: '#0D9488', dark: '#14B8A6' },
           alt: { light: '#9CA3AF', dark: '#64748B' },
           destination: { light: '#DB2777', dark: '#F472B6' }
         },
