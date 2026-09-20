@@ -1,5 +1,4 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import Header from './components/Header'
 import SearchPanel from './components/SearchPanel'
 import RouteResults from './components/RouteResults'
 import { TrafficToast, useTrafficWatcher } from './components/TrafficToast'
@@ -334,7 +333,6 @@ export default function App() {
 
   return (
     <div className="h-screen w-screen overflow-hidden">
-      <Header />
       <Suspense fallback={<div className="absolute inset-0 z-0 flex items-center justify-center text-sm text-text-secondary-light dark:text-text-secondary-dark">Loading map…</div>}>
         <MapContainer
           origin={origin}
