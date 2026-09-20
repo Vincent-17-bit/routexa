@@ -23,7 +23,7 @@ app.use('/api/cron', cronRouter)
 
 app.use((err, _req, res, _next) => {
   console.error(err)
-  res.status(500).json({ error: err.message || 'internal error' })
+  res.status(500).json({ error: 'internal error' })
 })
 
 migrate().catch((err) => console.error('startup migration failed:', err.message))

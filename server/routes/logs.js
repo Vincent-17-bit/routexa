@@ -1,11 +1,15 @@
 import { Router } from 'express'
+import rateLimit from 'express-rate-limit'
 import { asyncHandler } from '../lib/asyncHandler.js'
 import { db } from '../db/client.js'
 import { buildLogQuery, runLogQuery } from '../db/logQuery.js'
+import { requireBearer } from '../lib/auth.js'
 
 const router = Router()
 const TYPES = new Set(['login', 'search', 'route'])
 const TABLE = { login: 'login_logs', search: 'search_logs', route: 'route_logs' }
+const requireAdmin = requireBearer('ADMIN_API_SECRET')
+const adminLimiter = rateLimit({ windowMs: 60_000, max: 300, standardHeaders: true, legacyHeaders: false })
 
 function parseParams(req) {
   const q = req.query
@@ -20,7 +24,7 @@ function parseParams(req) {
   }
 }
 
-router.get('/:type', asyncHandler(async (req, res) => {
+router.get('/:type', requireAdmin, adminLimiter, asyncHandler(async (req, res) => {
   const { type } = req.params
   if (!TYPES.has(type)) return res.status(404).json({ error: 'unknown log type' })
   const params = parseParams(req)
@@ -28,7 +32,7 @@ router.get('/:type', asyncHandler(async (req, res) => {
   res.json({ rows, page: params.page, pageSize: params.pageSize })
 }))
 
-router.get('/:type/deleted', asyncHandler(async (req, res) => {
+router.get('/:type/deleted', requireAdmin, adminLimiter, asyncHandler(async (req, res) => {
   const { type } = req.params
   if (!TYPES.has(type)) return res.status(404).json({ error: 'unknown log type' })
   const params = parseParams(req)
@@ -36,7 +40,7 @@ router.get('/:type/deleted', asyncHandler(async (req, res) => {
   res.json({ rows })
 }))
 
-router.get('/:type/export', asyncHandler(async (req, res) => {
+router.get('/:type/export', requireAdmin, adminLimiter, asyncHandler(async (req, res) => {
   const { type } = req.params
   if (!TYPES.has(type)) return res.status(404).json({ error: 'unknown log type' })
   const format = req.query.format === 'json' ? 'json' : 'csv'
@@ -58,7 +62,7 @@ router.get('/:type/export', asyncHandler(async (req, res) => {
   res.send(csv)
 }))
 
-router.patch('/:type/:id/delete', asyncHandler(async (req, res) => {
+router.patch('/:type/:id/delete', requireAdmin, adminLimiter, asyncHandler(async (req, res) => {
   const { type, id } = req.params
   if (!TYPES.has(type)) return res.status(404).json({ error: 'unknown log type' })
   await db.execute({
@@ -68,7 +72,7 @@ router.patch('/:type/:id/delete', asyncHandler(async (req, res) => {
   res.json({ ok: true })
 }))
 
-router.patch('/:type/:id/restore', asyncHandler(async (req, res) => {
+router.patch('/:type/:id/restore', requireAdmin, adminLimiter, asyncHandler(async (req, res) => {
   const { type, id } = req.params
   if (!TYPES.has(type)) return res.status(404).json({ error: 'unknown log type' })
   await db.execute({

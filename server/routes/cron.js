@@ -3,15 +3,10 @@ import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 import { asyncHandler } from '../lib/asyncHandler.js'
 import { rollupDay } from '../scripts/rollup.js'
 import { dumpDatabase } from '../lib/dump.js'
+import { requireBearer } from '../lib/auth.js'
 
 const router = Router()
-
-function requireCronAuth(req, res, next) {
-  const secret = process.env.CRON_SECRET
-  if (!secret) return res.status(500).json({ error: 'CRON_SECRET not configured' })
-  if (req.headers.authorization !== `Bearer ${secret}`) return res.status(401).json({ error: 'unauthorized' })
-  next()
-}
+const requireCronAuth = requireBearer('CRON_SECRET')
 
 router.get('/rollup', requireCronAuth, asyncHandler(async (req, res) => {
   const result = await rollupDay(req.query.day)

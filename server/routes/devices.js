@@ -1,12 +1,16 @@
 import { Router } from 'express'
+import rateLimit from 'express-rate-limit'
 import { asyncHandler } from '../lib/asyncHandler.js'
 import { db } from '../db/client.js'
 import { SESSION_GAP_MINUTES } from '../lib/sessionConfig.js'
+import { requireBearer } from '../lib/auth.js'
 
 const router = Router()
 const ONLINE_CUTOFF = `-${SESSION_GAP_MINUTES} minutes`
+const requireAdmin = requireBearer('ADMIN_API_SECRET')
+const adminLimiter = rateLimit({ windowMs: 60_000, max: 300, standardHeaders: true, legacyHeaders: false })
 
-router.get('/overview', asyncHandler(async (_req, res) => {
+router.get('/overview', requireAdmin, adminLimiter, asyncHandler(async (_req, res) => {
   const [devices, active, loginsToday, searchesToday, trend, categoryBreakdown] = await Promise.all([
     db.execute('SELECT COUNT(*) AS n FROM devices'),
     db.execute({
@@ -49,7 +53,7 @@ router.get('/overview', asyncHandler(async (_req, res) => {
 
 const DEVICE_COLUMNS = 'device_id, fingerprint_hash, first_seen, last_seen, device_type, os, browser, total_sessions, device_model, device_category'
 
-router.get('/', asyncHandler(async (req, res) => {
+router.get('/', requireAdmin, adminLimiter, asyncHandler(async (req, res) => {
   const limit = Math.min(Number(req.query.pageSize) || 25, 100)
   const offset = (Number(req.query.page) || 0) * limit
   const totalResult = await db.execute('SELECT COUNT(*) AS n FROM devices')
@@ -66,7 +70,7 @@ router.get('/', asyncHandler(async (req, res) => {
   res.json({ rows: result.rows, total: totalResult.rows[0].n, page: Number(req.query.page) || 0, pageSize: limit })
 }))
 
-router.get('/:deviceId', asyncHandler(async (req, res) => {
+router.get('/:deviceId', requireAdmin, adminLimiter, asyncHandler(async (req, res) => {
   const { deviceId } = req.params
   const [device, logins, searches, routes] = await Promise.all([
     db.execute({

@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import rateLimit from 'express-rate-limit'
 import { asyncHandler } from '../lib/asyncHandler.js'
 import { db } from '../db/client.js'
 import { lookupGeo } from '../lib/geoip.js'
@@ -6,6 +7,9 @@ import { parseDevice } from '../lib/deviceModel.js'
 import { SESSION_GAP_MINUTES } from '../lib/sessionConfig.js'
 
 const router = Router()
+
+const trackLimiter = rateLimit({ windowMs: 60_000, max: 60, standardHeaders: true, legacyHeaders: false })
+const searchLimiter = rateLimit({ windowMs: 60_000, max: 300, standardHeaders: true, legacyHeaders: false })
 
 async function upsertDevice({ device_id, fingerprint_hash, device_type, os, browser, device_model, device_category }) {
   await db.execute({
@@ -24,7 +28,7 @@ async function upsertDevice({ device_id, fingerprint_hash, device_type, os, brow
   })
 }
 
-router.post('/devices/track', asyncHandler(async (req, res) => {
+router.post('/devices/track', trackLimiter, asyncHandler(async (req, res) => {
   const { device_id, fingerprint_hash, device_type, os, browser } = req.body || {}
   if (!device_id) return res.status(400).json({ error: 'device_id required' })
   const { device_type: device_category, device_model } = parseDevice(req.headers['user-agent'])
@@ -32,7 +36,7 @@ router.post('/devices/track', asyncHandler(async (req, res) => {
   res.json({ ok: true })
 }))
 
-router.post('/devices/:deviceId/offline', asyncHandler(async (req, res) => {
+router.post('/devices/:deviceId/offline', trackLimiter, asyncHandler(async (req, res) => {
   await db.execute({
     sql: `UPDATE devices SET is_currently_online = 0 WHERE device_id = ?`,
     args: [req.params.deviceId]
@@ -54,7 +58,7 @@ async function secondsSinceLastLogin(device_id) {
   return result.rows[0]?.diff_seconds ?? null
 }
 
-router.post('/logs/login', asyncHandler(async (req, res) => {
+router.post('/logs/login', trackLimiter, asyncHandler(async (req, res) => {
   const { device_id, success = true, fingerprint_hash, device_type, os, browser } = req.body || {}
   if (!device_id) return res.status(400).json({ error: 'device_id required' })
 
@@ -88,7 +92,7 @@ router.post('/logs/login', asyncHandler(async (req, res) => {
   res.json({ ok: true, newSession: isNewSession })
 }))
 
-router.post('/logs/search', asyncHandler(async (req, res) => {
+router.post('/logs/search', searchLimiter, asyncHandler(async (req, res) => {
   const { device_id, session_id, query_text, query_type, mode, result_count } = req.body || {}
   if (!device_id || !query_text) return res.status(400).json({ error: 'device_id and query_text required' })
 
@@ -99,7 +103,7 @@ router.post('/logs/search', asyncHandler(async (req, res) => {
   res.json({ ok: true })
 }))
 
-router.post('/logs/route', asyncHandler(async (req, res) => {
+router.post('/logs/route', trackLimiter, asyncHandler(async (req, res) => {
   const { device_id, origin, destination, mode, distance_km, eta_min, tolls_detected } = req.body || {}
   if (!device_id || !origin || !destination) return res.status(400).json({ error: 'device_id, origin, destination required' })
 

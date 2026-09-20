@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useLogFilters } from '../../hooks/useLogFilters'
 import { useLogData } from '../../hooks/useLogData'
-import { softDeleteLog, restoreLog, getDeletedLogs, exportLogsUrl } from '../../lib/api'
+import { softDeleteLog, restoreLog, getDeletedLogs, exportLogs } from '../../lib/api'
 import RangeSegment from './RangeSegment'
 import FilterPanel from './FilterPanel'
 import Chip from './Chip'
@@ -52,12 +52,12 @@ export default function LogTable({ type, columns, renderMobileRow }) {
         <RangeSegment value={filters.range} onChange={setRange} />
         <FilterPanel filters={filters} toggleBrowser={toggleBrowser} toggleDevice={toggleDevice} resetAll={resetAll} />
         <div className="ml-auto flex items-center gap-2">
-          <a href={exportLogsUrl(type, exportParams, 'csv')} className="text-xs text-text-secondary hover:text-cyan">
+          <button onClick={() => exportLogs(type, exportParams, 'csv')} className="text-xs text-text-secondary hover:text-cyan">
             CSV
-          </a>
-          <a href={exportLogsUrl(type, exportParams, 'json')} className="text-xs text-text-secondary hover:text-cyan">
+          </button>
+          <button onClick={() => exportLogs(type, exportParams, 'json')} className="text-xs text-text-secondary hover:text-cyan">
             JSON
-          </a>
+          </button>
           <button onClick={openDeleted} className="text-xs text-text-secondary hover:text-cyan">
             Recently deleted
           </button>
