@@ -87,9 +87,7 @@ export default function About() {
 
         <Section title="How long we keep it">
           <p>
-            We keep information for as long as we need it to run and improve the app. You can
-            ask us to delete the information linked to your device at any time — see the
-            contact details below.
+            We keep information for as long as we need it to run and improve the app.
           </p>
         </Section>
 
@@ -97,7 +95,6 @@ export default function About() {
           <ul className="list-disc pl-5 space-y-1.5">
             <li>Clear your browser's local storage to reset your device identifier</li>
             <li>Turn off location access at any time in your browser or device settings</li>
-            <li>Ask us what information we hold about your device, or ask us to delete it</li>
           </ul>
         </Section>
 
@@ -112,23 +109,12 @@ export default function About() {
         <Section title="Compliance">
           <p>
             We aim to handle information responsibly and in line with generally accepted data
-            protection principles. If you have questions about how we handle your information,
-            or requirements specific to your location, please get in touch below.
+            protection principles.
           </p>
         </Section>
 
         <Section title="Changes to this page">
           <p>We may update this page from time to time. The date below reflects the last update.</p>
-        </Section>
-
-        <Section title="Contact">
-          <p>
-            Questions about this page or your information? Contact us at{' '}
-            <span className="px-1.5 py-0.5 rounded border border-card-light dark:border-card-dark bg-surface-light dark:bg-surface-dark text-xs">
-              [add a contact email here]
-            </span>
-            .
-          </p>
         </Section>
 
         <p className="mt-10 text-xs text-text-secondary-light dark:text-text-secondary-dark">
