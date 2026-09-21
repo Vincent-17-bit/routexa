@@ -15,4 +15,24 @@
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
   </url>
+  <url>
+    <loc>https://routexa.vercel.app/blog</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://routexa.vercel.app/blog/nairobi-rush-hour-traffic-thika-mombasa-waiyaki</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://routexa.vercel.app/blog/fastest-route-nairobi-cbd-karen-langata-kikuyu-kasarani</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://routexa.vercel.app/blog/beat-nairobi-traffic-live-routing-car-matatu-boda</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
 </urlset>

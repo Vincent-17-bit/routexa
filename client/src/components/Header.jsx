@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 
 const NAV_LINKS = [
+  { label: 'Blog', to: '/blog' },
   { label: 'About', to: '/about' }
 ]
 

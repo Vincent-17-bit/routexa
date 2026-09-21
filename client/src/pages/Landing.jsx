@@ -207,6 +207,12 @@ export default function Landing() {
                 How your data is handled
               </Link>
             </div>
+            <Link
+              to="/blog"
+              className="inline-block mt-4 text-sm font-medium text-text-secondary-light dark:text-text-secondary-dark hover:text-accent-light dark:hover:text-accent-dark transition-colors"
+            >
+              Read our Nairobi traffic guides →
+            </Link>
           </div>
           <div className="max-w-sm mx-auto md:mx-0 md:ml-auto w-full">
             <AppSheetMock />
