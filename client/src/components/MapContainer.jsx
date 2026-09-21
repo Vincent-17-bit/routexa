@@ -56,6 +56,26 @@ function styleLightBasemap(map) {
   }
 }
 
+// dark-v11 default label color is too dim to read on the near-black bg
+function styleDarkBasemap(map) {
+  const setIfExists = (id, prop, value) => { if (map.getLayer(id)) map.setPaintProperty(id, prop, value) }
+  const setLayoutIfExists = (id, prop, value) => { if (map.getLayer(id)) map.setLayoutProperty(id, prop, value) }
+
+  const labelLayers = [
+    'settlement-label', 'settlement-subdivision-label', 'state-label', 'country-label',
+    'road-label', 'road-label-simple', 'natural-point-label', 'natural-line-label',
+    'water-label', 'waterway-label', 'poi-label', 'airport-label'
+  ]
+  for (const id of labelLayers) {
+    setIfExists(id, 'text-color', '#FFFFFF')
+    setIfExists(id, 'text-halo-color', '#0F172A')
+    setIfExists(id, 'text-halo-width', 1.4)
+  }
+  for (const id of ['road-label', 'road-label-simple', 'settlement-subdivision-label']) {
+    setLayoutIfExists(id, 'text-size', 12)
+  }
+}
+
 // mirrors route.active / route.destination in tailwind.config.js — Mapbox
 // markers are plain DOM nodes but still need a literal hex, not a class
 const PIN_HEX = {
@@ -237,7 +257,9 @@ export default function MapContainer({ origin, destination, routes, activeRouteI
         paint: { 'line-color': routeStatusColorExpr(prefersDarkQuery.matches), 'line-width': 7 }
       })
 
-      if (!prefersDarkQuery.matches) {
+      if (prefersDarkQuery.matches) {
+        styleDarkBasemap(map)
+      } else {
         styleLightBasemap(map)
       }
 
