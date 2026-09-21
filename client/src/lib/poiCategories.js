@@ -17,6 +17,7 @@ export const POI_CATEGORIES = [
   { id: 'pharmacy', label: 'Pharmacies', color: RED, maki: 'pharmacy', fa: 'fa-pills' },
   { id: 'clinic', label: 'Clinics', color: RED, maki: 'doctor', fa: 'fa-stethoscope' },
   { id: 'hotel', label: 'Hotels / Lodging', color: PINK, maki: 'lodging', fa: 'fa-bed' },
+  { id: 'cafe', label: 'Coffee / Cafes', color: ORANGE, maki: 'cafe', fa: 'fa-mug-saucer' },
   { id: 'restaurant', label: 'Restaurants', color: ORANGE, maki: 'restaurant', fa: 'fa-utensils' },
   { id: 'bus_station', label: 'Bus Stages / Transit', color: PURPLE, maki: 'bus', fa: 'fa-bus' },
   { id: 'airport', label: 'Airports', color: BLUE, maki: 'airport', fa: 'fa-plane' },

@@ -26,11 +26,21 @@ function routeStatusColorExpr(isDark) {
   ]
 }
 
+// lakes/water polygons + rivers/waterways, whatever the style calls them — light blue, both themes
+function recolorWaterLayers(map, fillColor, lineColor) {
+  const layers = map.getStyle()?.layers || []
+  for (const layer of layers) {
+    if (!/water/i.test(layer.id)) continue
+    if (layer.type === 'fill') map.setPaintProperty(layer.id, 'fill-color', fillColor)
+    if (layer.type === 'line') map.setPaintProperty(layer.id, 'line-color', lineColor)
+  }
+}
+
 function styleLightBasemap(map) {
   const setIfExists = (id, prop, value) => { if (map.getLayer(id)) map.setPaintProperty(id, prop, value) }
   const setLayoutIfExists = (id, prop, value) => { if (map.getLayer(id)) map.setLayoutProperty(id, prop, value) }
 
-  setIfExists('water', 'fill-color', '#C6ECFF')
+  recolorWaterLayers(map, '#C6ECFF', '#7FC1E8')
   setIfExists('national-park', 'fill-color', '#D2F1D2')
   setIfExists('landcover', 'fill-color', '#DCFCE7')
   setIfExists('landuse', 'fill-color', '#E4F2E6')
@@ -59,6 +69,8 @@ function styleLightBasemap(map) {
 // dark-v11 default label color is too dim to read on the near-black bg —
 // walk every text layer in the loaded style instead of guessing ids, so nothing gets missed
 function styleDarkBasemap(map) {
+  recolorWaterLayers(map, '#7DD3FC', '#7DD3FC')
+
   const layers = map.getStyle()?.layers || []
   for (const layer of layers) {
     if (layer.type !== 'symbol') continue
