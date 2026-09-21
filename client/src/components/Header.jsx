@@ -9,7 +9,7 @@ export default function Header() {
     <header className="fixed top-0 left-0 right-0 z-50 h-14 flex items-center justify-between px-4 glass bg-surface-light dark:bg-surface-dark border-b border-card-light dark:border-card-dark">
       <span className="font-bold text-lg tracking-tight">ROUTEXA</span>
 
-      <nav className="hidden sm:flex items-center gap-6">
+      <nav className="flex items-center gap-6">
         {NAV_LINKS.map((link) => (
           <Link
             key={link.to}

@@ -5,7 +5,6 @@ import { TrafficToast, useTrafficWatcher } from './components/TrafficToast'
 import { useSheetState } from './hooks/useSheetState'
 import { useMediaQuery } from './hooks/useMediaQuery'
 import { useDebouncedCallback } from './hooks/useDebounce'
-import { useSystemTheme } from './hooks/useSystemTheme'
 import { useNavigation } from './hooks/useNavigation'
 import { checkHealth, reverseGeocode, fetchDirections } from './lib/api'
 import { trackDevice, trackLogin, trackRoute, markOffline } from './lib/track'
@@ -17,7 +16,6 @@ const EMPTY_POINT = { text: '', coords: null }
 const POLL_INTERVAL_MS = 45000
 
 export default function App() {
-  useSystemTheme()
   const isMobile = !useMediaQuery('(min-width: 640px)')
   const { height: sheetHeight, isCollapsed, collapse, expand, ensureVisible, reset: resetSheet, dragHandlers } = useSheetState(isMobile)
 
