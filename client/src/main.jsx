@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import App from './App.jsx'
 import About from './pages/About.jsx'
+import Landing from './pages/Landing.jsx'
 import Header from './components/Header.jsx'
 import { useSystemTheme } from './hooks/useSystemTheme'
 import './index.css'
@@ -14,6 +15,7 @@ function Root() {
       <Header />
       <Routes>
         <Route path="/about" element={<About />} />
+        <Route path="/landing" element={<Landing />} />
         <Route path="*" element={<App />} />
       </Routes>
     </>
