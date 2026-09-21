@@ -118,6 +118,10 @@ export default function About() {
         </Section>
 
         <p className="mt-10 text-xs text-text-secondary-light dark:text-text-secondary-dark">
+          New here? <Link to="/landing" className="text-accent-light dark:text-accent-dark hover:underline">See what ROUTEXA does →</Link>
+        </p>
+
+        <p className="mt-3 text-xs text-text-secondary-light dark:text-text-secondary-dark">
           © {new Date().getFullYear()} ROUTEXA. Created, drafted, and built by viniihkr3.
         </p>
       </div>
