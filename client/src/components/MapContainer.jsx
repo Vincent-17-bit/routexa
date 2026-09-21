@@ -56,23 +56,20 @@ function styleLightBasemap(map) {
   }
 }
 
-// dark-v11 default label color is too dim to read on the near-black bg
+// dark-v11 default label color is too dim to read on the near-black bg —
+// walk every text layer in the loaded style instead of guessing ids, so nothing gets missed
 function styleDarkBasemap(map) {
-  const setIfExists = (id, prop, value) => { if (map.getLayer(id)) map.setPaintProperty(id, prop, value) }
-  const setLayoutIfExists = (id, prop, value) => { if (map.getLayer(id)) map.setLayoutProperty(id, prop, value) }
-
-  const labelLayers = [
-    'settlement-label', 'settlement-subdivision-label', 'state-label', 'country-label',
-    'road-label', 'road-label-simple', 'natural-point-label', 'natural-line-label',
-    'water-label', 'waterway-label', 'poi-label', 'airport-label'
-  ]
-  for (const id of labelLayers) {
-    setIfExists(id, 'text-color', '#FFFFFF')
-    setIfExists(id, 'text-halo-color', '#0F172A')
-    setIfExists(id, 'text-halo-width', 1.4)
-  }
-  for (const id of ['road-label', 'road-label-simple', 'settlement-subdivision-label']) {
-    setLayoutIfExists(id, 'text-size', 12)
+  const layers = map.getStyle()?.layers || []
+  for (const layer of layers) {
+    if (layer.type !== 'symbol') continue
+    if (!layer.layout?.['text-field']) continue
+    map.setPaintProperty(layer.id, 'text-color', '#FFFFFF')
+    map.setPaintProperty(layer.id, 'text-halo-color', '#0F172A')
+    map.setPaintProperty(layer.id, 'text-halo-width', 1.4)
+    const size = map.getLayoutProperty(layer.id, 'text-size')
+    if (typeof size === 'number' && size < 12) {
+      map.setLayoutProperty(layer.id, 'text-size', 12)
+    }
   }
 }
 
